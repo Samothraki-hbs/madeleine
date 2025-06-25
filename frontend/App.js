@@ -1,20 +1,11 @@
-// App.js
 import React from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
-import PhoneLoginScreen from './screens/PhoneLoginScreen';
+import { NavigationContainer } from '@react-navigation/native';
+import SignupNavigator from './navigation/SignupNavigator';
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.container}>
-      <PhoneLoginScreen />
-    </SafeAreaView>
+    <NavigationContainer>
+      <SignupNavigator />
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-  },
-});
