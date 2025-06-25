@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
 
 export default function AccueilScreen() {
+  // Replace this with your actual data fetching logic
+  const pictures = []; // Empty array means no pictures
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -12,17 +15,23 @@ export default function AccueilScreen() {
         </View>
       </View>
 
-      <View style={styles.userInfo}>
-        <Image source={{ uri: 'https://placehold.co/48x48' }} style={styles.avatar} />
-        <View>
-          <Text style={styles.username}>Armand</Text>
-          <Text style={styles.time}>il y a 1 heure</Text>
+      {pictures.length === 0 ? (
+        <View style={styles.placeholderImage}>
+          <Image
+            source={{ uri: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fassets.afcdn.com%2Frecipe%2F20191024%2F101123_w2048h1536c1cx1920cy2880.jpg&f=1&nofb=1&ipt=a1d14cc23bf60003ff9aae3c694677c756fd2a01a053c977c896dee27c98de72' }}
+            style={styles.realImage}
+            resizeMode="cover"
+          />
         </View>
-      </View>
-
-      <View style={styles.placeholderImage}>
-        <Text style={styles.placeholderText}>[ image partagée ici ]</Text>
-      </View>
+      ) : (
+        <FlatList
+          data={pictures}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Image source={{ uri: item.url }} style={styles.realImage} />
+          )}
+        />
+      )}
 
       <View style={styles.actions}>
         <Text style={styles.actionIcon}>🤍</Text>
@@ -82,10 +91,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
-  placeholderText: {
-    fontSize: 16,
-    color: '#555',
+  realImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
   },
   actions: {
     flexDirection: 'row',
@@ -95,5 +106,11 @@ const styles = StyleSheet.create({
   },
   actionIcon: {
     fontSize: 22,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 40,
   },
 });
