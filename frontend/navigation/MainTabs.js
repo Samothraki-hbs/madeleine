@@ -10,6 +10,7 @@ import NotificationScreen from '../screens/NotificationScreen';
 import AlbumScreen from '../screens/AlbumScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
 
@@ -37,11 +38,38 @@ export default function MainTabs() {
     checkToken();
   }, []);
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: '#ff4d2e',
+        tabBarInactiveTintColor: '#888',
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          height: 70,
+          paddingBottom: 10,
+          marginHorizontal: 0,
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 8,
+        },
+        tabBarIcon: ({ color, size, focused }) => {
+          if (route.name === 'Activité') {
+            return <Ionicons name={focused ? 'home' : 'home-outline'} size={28} color={color} />;
+          }
+          if (route.name === 'Mes albums') {
+            return <MaterialIcons name={focused ? 'photo-album' : 'photo-album'} size={28} color={color} />;
+          }
+          if (route.name === 'Mon profil') {
+            return <Ionicons name={focused ? 'person' : 'person-outline'} size={28} color={color} />;
+          }
+          return null;
+        },
+      })}
+    >
       <Tab.Screen name="Activité" component={AccueilScreen} />
       <Tab.Screen name="Mes albums" component={MesAlbumsScreen} />
       <Tab.Screen name="Mon profil" component={MonProfilScreen} />
-      <Tab.Screen name="Album" component={AlbumScreen} options={{ tabBarButton: () => null, tabBarVisible: false }} />
     </Tab.Navigator>
   );
 }

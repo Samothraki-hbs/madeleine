@@ -35,7 +35,7 @@ export default function WelcomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Bienvenu sur Madeleine</Text>
+        <Text style={styles.title}>Bienvenue sur Madeleine</Text>
         <Text style={styles.subtitle}>
           Le nouveau réseau social pour partager des nouvelles entre proches !
         </Text>
