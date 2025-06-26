@@ -1,21 +1,34 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PseudoScreen({ navigation }) {
   const [pseudo, setPseudo] = useState('');
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (pseudo.length < 3) {
       alert('Le pseudo doit faire au moins 3 caractères');
       return;
     }
-
-    // Plus tard : ici tu vérifieras que le pseudo est unique
-
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }], // 👈 redirection vers la page d'accueil
-    });
+    try {
+      const response = await fetch('http://localhost:3000/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pseudo }),
+      });
+      const data = await response.json();
+      if (response.ok && data.token) {
+        await AsyncStorage.setItem('token', data.token);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'MainTabs' }],
+        });
+      } else {
+        alert(data.error || 'Erreur lors de l\'inscription');
+      }
+    } catch (err) {
+      alert('Erreur réseau');
+    }
   };
 
   return (
