@@ -18,3 +18,4 @@ app.use('/', authRoutes); // ← toutes les routes définies dans routes/auth.js
 app.listen(PORT, () => {
   console.log(`✅ Serveur démarré sur le port ${PORT}`);
 });
+
