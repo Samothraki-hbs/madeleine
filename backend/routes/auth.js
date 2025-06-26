@@ -92,9 +92,28 @@ router.get('/users', authenticateToken, async (req, res) => {
       .where('pseudo', '>=', pseudo)
       .where('pseudo', '<=', pseudo + '\uf8ff')
       .get();
-    const results = snapshot.docs
-      .filter(doc => doc.id !== req.user.userId)
-      .map(doc => ({ userId: doc.id, pseudo: doc.data().pseudo }));
+    const currentUserId = req.user.userId;
+    const results = await Promise.all(snapshot.docs
+      .filter(doc => doc.id !== currentUserId)
+      .map(async doc => {
+        const userId = doc.id;
+        const userPseudo = doc.data().pseudo;
+        // Vérifier la relation
+        let relation = 'none';
+        // Ami ?
+        const friendsRef = db.collection('friends');
+        const isFriend = !(await friendsRef.where('userA', '==', currentUserId).where('userB', '==', userId).get()).empty
+          || !(await friendsRef.where('userA', '==', userId).where('userB', '==', currentUserId).get()).empty;
+        if (isFriend) relation = 'friend';
+        // Demande envoyée ?
+        const requestsRef = db.collection('friendRequests');
+        const sent = !(await requestsRef.where('fromUserId', '==', currentUserId).where('toUserId', '==', userId).where('status', '==', 'pending').get()).empty;
+        if (sent) relation = 'sent';
+        // Demande reçue ?
+        const received = !(await requestsRef.where('fromUserId', '==', userId).where('toUserId', '==', currentUserId).where('status', '==', 'pending').get()).empty;
+        if (received) relation = 'received';
+        return { userId, pseudo: userPseudo, relation };
+      }));
     res.json({ users: results });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
@@ -109,14 +128,39 @@ router.post('/friend-request', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Utilisateur cible invalide' });
   }
   try {
-    // Vérifier si une demande existe déjà
+    // 1. Vérifier si déjà amis (dans les deux sens)
+    const friendsRef = db.collection('friends');
+    const friendsSnapshot = await friendsRef
+      .where('userA', '==', fromUserId)
+      .where('userB', '==', toUserId)
+      .get();
+    if (!friendsSnapshot.empty) {
+      return res.status(409).json({ error: 'Vous êtes déjà amis' });
+    }
+    const friendsSnapshot2 = await friendsRef
+      .where('userA', '==', toUserId)
+      .where('userB', '==', fromUserId)
+      .get();
+    if (!friendsSnapshot2.empty) {
+      return res.status(409).json({ error: 'Vous êtes déjà amis' });
+    }
+    // 2. Vérifier si une demande existe déjà dans un sens ou dans l'autre
     const requestsRef = db.collection('friendRequests');
     const existing = await requestsRef
       .where('fromUserId', '==', fromUserId)
       .where('toUserId', '==', toUserId)
+      .where('status', '==', 'pending')
       .get();
     if (!existing.empty) {
       return res.status(409).json({ error: 'Demande déjà envoyée' });
+    }
+    const reverse = await requestsRef
+      .where('fromUserId', '==', toUserId)
+      .where('toUserId', '==', fromUserId)
+      .where('status', '==', 'pending')
+      .get();
+    if (!reverse.empty) {
+      return res.status(409).json({ error: 'Cet utilisateur vous a déjà envoyé une demande' });
     }
     await requestsRef.add({ fromUserId, toUserId, status: 'pending', createdAt: new Date() });
     res.status(201).json({ message: 'Demande envoyée' });

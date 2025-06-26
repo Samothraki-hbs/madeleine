@@ -79,13 +79,21 @@ export default function RechercheAmi() {
         renderItem={({ item }) => (
           <View style={styles.resultRow}>
             <Text style={styles.pseudo}>{item.pseudo}</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => sendFriendRequest(item.userId)}
-              disabled={sending === item.userId}
-            >
-              <Text style={styles.buttonText}>{sending === item.userId ? 'Envoi...' : 'Demander en ami'}</Text>
-            </TouchableOpacity>
+            {item.relation === 'none' ? (
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => sendFriendRequest(item.userId)}
+                disabled={sending === item.userId}
+              >
+                <Text style={styles.buttonText}>{sending === item.userId ? 'Envoi...' : 'Demander en ami'}</Text>
+              </TouchableOpacity>
+            ) : item.relation === 'friend' ? (
+              <Text style={styles.statusText}>Déjà ami</Text>
+            ) : item.relation === 'sent' ? (
+              <Text style={styles.statusText}>Demande envoyée</Text>
+            ) : item.relation === 'received' ? (
+              <Text style={styles.statusText}>Cet utilisateur vous a déjà envoyé une demande</Text>
+            ) : null}
           </View>
         )}
         ListEmptyComponent={!loading && search.length > 1 ? <Text style={styles.text}>Aucun résultat</Text> : null}
@@ -148,5 +156,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  statusText: {
+    color: '#888',
+    fontSize: 15,
+    fontStyle: 'italic',
+    marginLeft: 8,
   },
 }); 
