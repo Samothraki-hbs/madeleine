@@ -228,5 +228,99 @@ router.post('/friend-request/respond', authenticateToken, async (req, res) => {
   }
 });
 
+// Créer un album partagé
+router.post('/albums', authenticateToken, async (req, res) => {
+  const { name, memberIds } = req.body;
+  const createdBy = req.user.userId;
+  if (!name || !Array.isArray(memberIds) || memberIds.length === 0) {
+    return res.status(400).json({ error: 'Nom et membres requis' });
+  }
+  // Ajouter le créateur dans la liste des membres si absent
+  const members = Array.from(new Set([...memberIds, createdBy]));
+  try {
+    const albumRef = await db.collection('albums').add({
+      name,
+      members,
+      createdBy,
+      createdAt: new Date(),
+    });
+    res.status(201).json({ albumId: albumRef.id });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Récupérer les albums où l'utilisateur est membre
+router.get('/albums', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  try {
+    const snapshot = await db.collection('albums').where('members', 'array-contains', userId).get();
+    const albums = snapshot.docs.map(doc => ({ albumId: doc.id, ...doc.data() }));
+    res.json({ albums });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Récupérer les photos d'un album
+router.get('/albums/:id/photos', authenticateToken, async (req, res) => {
+  const albumId = req.params.id;
+  try {
+    const snapshot = await db.collection('photos').where('albumId', '==', albumId).get();
+    const photos = snapshot.docs.map(doc => ({ photoId: doc.id, ...doc.data() }));
+    res.json({ photos });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Ajouter des photos à un album (plusieurs URLs à la fois)
+router.post('/albums/:id/photos', authenticateToken, async (req, res) => {
+  const albumId = req.params.id;
+  const uploaderId = req.user.userId;
+  const { urls } = req.body; // tableau d'URLs
+  if (!Array.isArray(urls) || urls.length === 0) {
+    return res.status(400).json({ error: 'URLs requises' });
+  }
+  try {
+    const batch = db.batch ? db.batch() : null;
+    const photosRef = db.collection('photos');
+    const createdAt = new Date();
+    let photoIds = [];
+    for (const url of urls) {
+      const ref = photosRef.doc ? photosRef.doc() : null;
+      const data = { albumId, uploaderId, url, createdAt };
+      if (batch && ref) {
+        batch.set(ref, data);
+        photoIds.push(ref.id);
+      } else {
+        const docRef = await photosRef.add(data);
+        photoIds.push(docRef.id);
+      }
+    }
+    if (batch) await batch.commit();
+    res.status(201).json({ photoIds });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Récupérer la liste des amis de l'utilisateur connecté
+router.get('/friends', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  try {
+    const friendsRef = db.collection('friends');
+    const snapshot = await friendsRef.where('userA', '==', userId).get();
+    const friends = await Promise.all(snapshot.docs.map(async doc => {
+      const data = doc.data();
+      const userDoc = await db.collection('users').doc(data.userB).get();
+      return userDoc.exists ? { userId: data.userB, pseudo: userDoc.data().pseudo } : null;
+    }));
+    res.json({ friends: friends.filter(Boolean) });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 module.exports = router;
 

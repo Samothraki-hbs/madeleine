@@ -7,6 +7,7 @@ import AccueilScreen from '../screens/AccueilScreen';
 import MonProfilScreen from '../screens/MonProfilScreen';
 import MesAlbumsScreen from '../screens/MesAlbumsScreen';
 import NotificationScreen from '../screens/NotificationScreen';
+import AlbumScreen from '../screens/AlbumScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 
@@ -40,7 +41,7 @@ export default function MainTabs() {
       <Tab.Screen name="Activité" component={AccueilScreen} />
       <Tab.Screen name="Mes albums" component={MesAlbumsScreen} />
       <Tab.Screen name="Mon profil" component={MonProfilScreen} />
-      <Tab.Screen name="Notifications" component={NotificationScreen} />
+      <Tab.Screen name="Album" component={AlbumScreen} options={{ tabBarButton: () => null, tabBarVisible: false }} />
     </Tab.Navigator>
   );
 }

@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function AccueilScreen() {
+  const navigation = useNavigation();
   // Replace this with your actual data fetching logic
   const pictures = []; // Empty array means no pictures
 
@@ -10,7 +12,9 @@ export default function AccueilScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Activité</Text>
         <View style={styles.icons}>
-          <View style={styles.circleIcon}><Text>🔔</Text></View>
+          <TouchableOpacity style={styles.circleIcon} onPress={() => navigation.navigate('Notifications')}>
+            <Image source={require('../assets/images/notification.png')} style={styles.notifIcon} />
+          </TouchableOpacity>
           <View style={styles.circleIcon}><Text>📤</Text></View>
         </View>
       </View>
@@ -112,5 +116,10 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 40,
+  },
+  notifIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
   },
 });
