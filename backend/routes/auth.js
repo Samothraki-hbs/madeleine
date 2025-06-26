@@ -67,8 +67,121 @@ router.post('/login', async (req, res) => {
 });
 
 // Exemple de route protégée
-router.get('/me', authenticateToken, (req, res) => {
-  res.json({ user: req.user });
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return res.status(401).json({ error: 'Utilisateur introuvable' });
+    }
+    res.json({ user: { userId, ...userDoc.data() } });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Rechercher des utilisateurs par pseudo (hors soi-même)
+router.get('/users', authenticateToken, async (req, res) => {
+  const { pseudo } = req.query;
+  if (!pseudo || pseudo.length < 1) {
+    return res.status(400).json({ error: 'Pseudo requis' });
+  }
+  try {
+    const usersRef = db.collection('users');
+    const snapshot = await usersRef
+      .where('pseudo', '>=', pseudo)
+      .where('pseudo', '<=', pseudo + '\uf8ff')
+      .get();
+    const results = snapshot.docs
+      .filter(doc => doc.id !== req.user.userId)
+      .map(doc => ({ userId: doc.id, pseudo: doc.data().pseudo }));
+    res.json({ users: results });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Envoyer une demande d'ami
+router.post('/friend-request', authenticateToken, async (req, res) => {
+  const { toUserId } = req.body;
+  const fromUserId = req.user.userId;
+  if (!toUserId || toUserId === fromUserId) {
+    return res.status(400).json({ error: 'Utilisateur cible invalide' });
+  }
+  try {
+    // Vérifier si une demande existe déjà
+    const requestsRef = db.collection('friendRequests');
+    const existing = await requestsRef
+      .where('fromUserId', '==', fromUserId)
+      .where('toUserId', '==', toUserId)
+      .get();
+    if (!existing.empty) {
+      return res.status(409).json({ error: 'Demande déjà envoyée' });
+    }
+    await requestsRef.add({ fromUserId, toUserId, status: 'pending', createdAt: new Date() });
+    res.status(201).json({ message: 'Demande envoyée' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Récupérer les demandes d'amis reçues
+router.get('/friend-requests', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const requestsRef = db.collection('friendRequests');
+    const snapshot = await requestsRef
+      .where('toUserId', '==', userId)
+      .where('status', '==', 'pending')
+      .get();
+    const requests = await Promise.all(snapshot.docs.map(async doc => {
+      const data = doc.data();
+      // Récupérer le pseudo de l'expéditeur
+      const fromUser = await db.collection('users').doc(data.fromUserId).get();
+      return {
+        requestId: doc.id,
+        fromUserId: data.fromUserId,
+        fromPseudo: fromUser.exists ? fromUser.data().pseudo : 'Utilisateur supprimé',
+        createdAt: data.createdAt,
+      };
+    }));
+    res.json({ requests });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Répondre à une demande d'ami (accepter ou refuser)
+router.post('/friend-request/respond', authenticateToken, async (req, res) => {
+  const { requestId, action } = req.body; // action: 'accept' ou 'refuse'
+  const userId = req.user.userId;
+  if (!requestId || !['accept', 'refuse'].includes(action)) {
+    return res.status(400).json({ error: 'Paramètres invalides' });
+  }
+  try {
+    const requestRef = db.collection('friendRequests').doc(requestId);
+    const requestDoc = await requestRef.get();
+    if (!requestDoc.exists) {
+      return res.status(404).json({ error: 'Demande non trouvée' });
+    }
+    const request = requestDoc.data();
+    if (request.toUserId !== userId) {
+      return res.status(403).json({ error: 'Non autorisé' });
+    }
+    if (action === 'accept') {
+      // Créer l'amitié (dans les deux sens)
+      const friendsRef = db.collection('friends');
+      await friendsRef.add({ userA: userId, userB: request.fromUserId, createdAt: new Date() });
+      await friendsRef.add({ userA: request.fromUserId, userB: userId, createdAt: new Date() });
+      await requestRef.update({ status: 'accepted' });
+      return res.json({ message: 'Ami accepté' });
+    } else {
+      await requestRef.update({ status: 'refused' });
+      return res.json({ message: 'Demande refusée' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 module.exports = router;

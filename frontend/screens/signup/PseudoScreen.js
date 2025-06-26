@@ -11,7 +11,7 @@ export default function PseudoScreen({ navigation }) {
       return;
     }
     try {
-      const response = await fetch('http://localhost:3000/signup', {
+      const response = await fetch('http://192.168.0.14:3000/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pseudo }),

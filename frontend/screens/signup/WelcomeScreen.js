@@ -9,10 +9,24 @@ export default function WelcomeScreen({ navigation }) {
     const checkToken = async () => {
       const token = await AsyncStorage.getItem('token');
       if (token) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' }],
-        });
+        try {
+          const response = await fetch('http://192.168.0.14:3000/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.status === 401) {
+            await AsyncStorage.removeItem('token');
+            // Reste sur WelcomeScreen
+            return;
+          }
+          if (response.ok) {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'MainTabs' }],
+            });
+          }
+        } catch (err) {
+          // Erreur réseau, tu peux choisir de rester sur WelcomeScreen ou afficher un message
+        }
       }
     };
     checkToken();
