@@ -1,22 +1,17 @@
-
-
-const { Pool } = require('pg');
+const admin = require('firebase-admin');
+const path = require('path');
 require('dotenv').config();
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // important pour Railway
-  }
+// Remplace le chemin ci-dessous par le chemin réel de ta clé de service Firebase
+const serviceAccount = require(path.join(__dirname, 'serviceAccountKey.json'));
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
 });
 
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('Connexion échouée à PostgreSQL', err);
-  } else {
-    console.log('Connexion réussie à PostgreSQL', res.rows);
-  }
-});
+const db = admin.firestore();
+
+module.exports = db;
 
 
 module.exports = pool;
