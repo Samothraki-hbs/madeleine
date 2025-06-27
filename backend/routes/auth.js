@@ -3,6 +3,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const upload = multer({ limits: { files: 5 } });
+const { bucket } = require('../db');
 
 // POST /signup
 router.post('/signup', async (req, res) => {
@@ -274,34 +277,32 @@ router.get('/albums/:id/photos', authenticateToken, async (req, res) => {
   }
 });
 
-// Ajouter des photos à un album (plusieurs URLs à la fois)
-router.post('/albums/:id/photos', authenticateToken, async (req, res) => {
+// Ajouter des photos à un album (upload fichiers)
+router.post('/albums/:id/photos', authenticateToken, upload.array('photos', 5), async (req, res) => {
+  console.log('Requête reçue pour upload photos');
   const albumId = req.params.id;
   const uploaderId = req.user.userId;
-  const { urls } = req.body; // tableau d'URLs
-  if (!Array.isArray(urls) || urls.length === 0) {
-    return res.status(400).json({ error: 'URLs requises' });
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: 'Aucun fichier reçu' });
   }
   try {
-    const batch = db.batch ? db.batch() : null;
-    const photosRef = db.collection('photos');
-    const createdAt = new Date();
-    let photoIds = [];
-    for (const url of urls) {
-      const ref = photosRef.doc ? photosRef.doc() : null;
-      const data = { albumId, uploaderId, url, createdAt };
-      if (batch && ref) {
-        batch.set(ref, data);
-        photoIds.push(ref.id);
-      } else {
-        const docRef = await photosRef.add(data);
-        photoIds.push(docRef.id);
-      }
+    const urls = [];
+    for (const file of req.files) {
+      // Upload vers Firebase Storage à la racine (warehouse)
+      const destination = `${Date.now()}_${file.originalname}`;
+      const blob = bucket.file(destination);
+      await blob.save(file.buffer, { contentType: file.mimetype });
+      // Rendre le fichier public (optionnel)
+      await blob.makePublic();
+      const url = `https://storage.googleapis.com/${bucket.name}/${destination}`;
+      urls.push(url);
+      // Enregistrer dans Firestore
+      await db.collection('photos').add({ albumId, uploaderId, url, createdAt: new Date() });
     }
-    if (batch) await batch.commit();
-    res.status(201).json({ photoIds });
+    res.status(201).json({ urls });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    console.error('Erreur upload:', err);
+    res.status(500).json({ error: 'Erreur upload' });
   }
 });
 
@@ -317,6 +318,78 @@ router.get('/friends', authenticateToken, async (req, res) => {
       return userDoc.exists ? { userId: data.userB, pseudo: userDoc.data().pseudo } : null;
     }));
     res.json({ friends: friends.filter(Boolean) });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Photos à trier pour un utilisateur dans un album
+router.get('/albums/:id/photos-to-sort', authenticateToken, async (req, res) => {
+  const albumId = req.params.id;
+  const userId = req.user.userId;
+  try {
+    // Récupère toutes les photos de l'album
+    const photosSnap = await db.collection('photos').where('albumId', '==', albumId).get();
+    const allPhotos = photosSnap.docs.map(doc => ({ photoId: doc.id, ...doc.data() }));
+    // Récupère les statuts de l'utilisateur pour ces photos
+    const statusSnap = await db.collection('userPhotoStatus')
+      .where('userId', '==', userId)
+      .where('albumId', '==', albumId)
+      .get();
+    const donePhotoIds = statusSnap.docs.map(doc => doc.data().photoId);
+    // Filtre les photos non triées
+    const toSort = allPhotos.filter(p => !donePhotoIds.includes(p.photoId));
+    res.json({ photos: toSort });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Enregistrer le choix de l'utilisateur pour une photo
+router.post('/photos/:photoId/status', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  const photoId = req.params.photoId;
+  const { albumId, status } = req.body; // status: archived | kept | pinned
+  if (!['archived', 'kept', 'pinned'].includes(status)) {
+    return res.status(400).json({ error: 'Statut invalide' });
+  }
+  try {
+    await db.collection('userPhotoStatus').add({ userId, photoId, albumId, status, createdAt: new Date() });
+    if (status === 'pinned') {
+      await db.collection('pins').add({ userId, photoId, albumId, pinnedAt: new Date() });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Mes épingles
+router.get('/pins/me', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  try {
+    const pinsSnap = await db.collection('pins').where('userId', '==', userId).get();
+    const pins = pinsSnap.docs.map(doc => ({ pinId: doc.id, ...doc.data() }));
+    res.json({ pins });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Epingles de mes amis
+router.get('/pins/friends', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  try {
+    // Récupère mes amis
+    const friendsSnap = await db.collection('friends').where('userA', '==', userId).get();
+    const friendIds = friendsSnap.docs.map(doc => doc.data().userB);
+    // Récupère les pins de mes amis
+    let pins = [];
+    if (friendIds.length > 0) {
+      const pinsSnap = await db.collection('pins').where('userId', 'in', friendIds).get();
+      pins = pinsSnap.docs.map(doc => ({ pinId: doc.id, ...doc.data() }));
+    }
+    res.json({ pins });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
   }
