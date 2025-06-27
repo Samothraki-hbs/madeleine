@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import PhotoSorter from './PhotoSorter';
 
 export default function AlbumScreen({ route }) {
   const { albumId, albumName } = route.params;
@@ -212,23 +213,34 @@ export default function AlbumScreen({ route }) {
         ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune photo</Text> : null}
         contentContainerStyle={{ paddingBottom: 40 }}
       />
-      {sorting && photosToSort.length > 0 && photosToSort[currentSortIndex] && (
-        <Modal visible transparent animationType="fade">
-          <View style={styles.sortOverlay}>
-            <Animated.View
-              style={[styles.sortCard, { transform: pan.getTranslateTransform() }]}
-              {...panResponder.panHandlers}
-            >
-              <Image source={{ uri: photosToSort[currentSortIndex].url }} style={styles.sortImage} />
-              <View style={styles.sortLabels}>
-                <Text style={styles.sortLabelLeft}>Archiver
-                  {'\n'}⬅️</Text>
-                <Text style={styles.sortLabelRight}>Garder
-                  {'\n'}➡️</Text>
-                <Text style={styles.sortLabelUp}>Epingler
-                  {'\n'}⬆️</Text>
-              </View>
-            </Animated.View>
+      {sorting && photosToSort.length > 0 && (
+        <Modal visible={sorting} transparent animationType="fade">
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,1)' }}>
+            <PhotoSorter
+              photos={photosToSort}
+              onSwipe={async (photo, direction) => {
+                let status = 'kept';
+                if (direction === 'left') status = 'archived';
+                if (direction === 'right') status = 'kept';
+                if (direction === 'top') status = 'pinned';
+                const token = await AsyncStorage.getItem('token');
+                await fetch(`http://192.168.0.14:3000/photos/${photo.photoId}/status`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ albumId, status }),
+                });
+                // Met à jour la galerie immédiatement si la photo est gardée ou épinglée
+                if (status === 'kept' || status === 'pinned') {
+                  setPhotos(prev => [...prev, photo]);
+                }
+                setPhotosToSort(prev => prev.filter(p => p.photoId !== photo.photoId));
+              }}
+              onClose={() => {
+                setSorting(false);
+                fetchPhotos();
+                fetchPhotosToSort();
+              }}
+            />
           </View>
         </Modal>
       )}

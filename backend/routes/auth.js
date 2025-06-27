@@ -268,10 +268,27 @@ router.get('/albums', authenticateToken, async (req, res) => {
 // Récupérer les photos d'un album
 router.get('/albums/:id/photos', authenticateToken, async (req, res) => {
   const albumId = req.params.id;
+  const userId = req.user.userId;
   try {
-    const snapshot = await db.collection('photos').where('albumId', '==', albumId).get();
-    const photos = snapshot.docs.map(doc => ({ photoId: doc.id, ...doc.data() }));
-    res.json({ photos });
+    // Récupérer toutes les photos de l'album
+    const photosSnap = await db.collection('photos').where('albumId', '==', albumId).get();
+    const allPhotos = photosSnap.docs.map(doc => ({ photoId: doc.id, ...doc.data() }));
+    // Récupérer les statuts de l'utilisateur pour ces photos
+    const statusSnap = await db.collection('userPhotoStatus')
+      .where('userId', '==', userId)
+      .where('albumId', '==', albumId)
+      .get();
+    const statusMap = {};
+    statusSnap.docs.forEach(doc => {
+      const data = doc.data();
+      statusMap[data.photoId] = data.status;
+    });
+    // Ne garder que les photos dont le statut est 'kept' ou 'pinned' pour l'utilisateur
+    const filteredPhotos = allPhotos.filter(photo => {
+      const status = statusMap[photo.photoId];
+      return status === 'kept' || status === 'pinned';
+    });
+    res.json({ photos: filteredPhotos });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
   }
@@ -297,7 +314,15 @@ router.post('/albums/:id/photos', authenticateToken, upload.array('photos', 5), 
       const url = `https://storage.googleapis.com/${bucket.name}/${destination}`;
       urls.push(url);
       // Enregistrer dans Firestore
-      await db.collection('photos').add({ albumId, uploaderId, url, createdAt: new Date() });
+      const photoRef = await db.collection('photos').add({ albumId, uploaderId, url, createdAt: new Date() });
+      // Créer le statut 'kept' pour l'uploader
+      await db.collection('userPhotoStatus').add({
+        userId: uploaderId,
+        photoId: photoRef.id,
+        albumId,
+        status: 'kept',
+        createdAt: new Date(),
+      });
     }
     res.status(201).json({ urls });
   } catch (err) {

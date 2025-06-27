@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, ActivityIndicator, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AccueilScreen() {
   const navigation = useNavigation();
   const [friendPins, setFriendPins] = useState([]);
   const [loadingPins, setLoadingPins] = useState(true);
+  const [selectedPin, setSelectedPin] = useState(null);
 
   const fetchFriendPins = async () => {
     setLoadingPins(true);
@@ -39,7 +41,6 @@ export default function AccueilScreen() {
           <TouchableOpacity style={styles.circleIcon} onPress={() => navigation.navigate('Notifications')}>
             <Image source={require('../assets/images/notification.png')} style={styles.notifIcon} />
           </TouchableOpacity>
-          <View style={styles.circleIcon}><Text>📤</Text></View>
         </View>
       </View>
 
@@ -70,28 +71,20 @@ export default function AccueilScreen() {
         ListEmptyComponent={!loadingPins ? <Text style={styles.empty}>Aucune épingle d'ami</Text> : null}
       />
 
-      {pictures.length === 0 ? (
-        <View style={styles.placeholderImage}>
-          <Image
-            source={{ uri: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fassets.afcdn.com%2Frecipe%2F20191024%2F101123_w2048h1536c1cx1920cy2880.jpg&f=1&nofb=1&ipt=a1d14cc23bf60003ff9aae3c694677c756fd2a01a053c977c896dee27c98de72' }}
-            style={styles.realImage}
-            resizeMode="cover"
-          />
-        </View>
-      ) : (
-        <FlatList
-          data={pictures}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <Image source={{ uri: item.url }} style={styles.realImage} />
+      {/* Modal pour afficher la photo en grand */}
+      <Modal visible={!!selectedPin} transparent animationType="fade" onRequestClose={() => setSelectedPin(null)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.closeModal} onPress={() => setSelectedPin(null)}>
+            <Ionicons name="close" size={36} color="#fff" />
+          </TouchableOpacity>
+          {selectedPin && (
+            <Image
+              source={{ uri: selectedPin.photoUrl }}
+              style={styles.fullImage}
+            />
           )}
-        />
-      )}
-
-      <View style={styles.actions}>
-        <Text style={styles.actionIcon}>🤍</Text>
-        <Text style={styles.actionIcon}>💬</Text>
-      </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -229,5 +222,27 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeModal: {
+    position: 'absolute',
+    top: 40,
+    right: 30,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 24,
+    padding: 6,
+  },
+  fullImage: {
+    width: '90%',
+    height: '70%',
+    resizeMode: 'contain',
+    borderRadius: 18,
+    backgroundColor: '#222',
   },
 });
