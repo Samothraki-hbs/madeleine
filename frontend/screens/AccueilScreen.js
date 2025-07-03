@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, ActivityIndicator, Modal } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function AccueilScreen() {
   const navigation = useNavigation();
@@ -14,7 +15,7 @@ export default function AccueilScreen() {
     setLoadingPins(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.14:3000/pins/friends', {
+      const response = await fetch('http://192.168.0.11:3000/pins/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -26,65 +27,60 @@ export default function AccueilScreen() {
     setLoadingPins(false);
   };
 
-  useEffect(() => {
-    fetchFriendPins();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchFriendPins();
+    }, [])
+  );
 
   // Replace this with your actual data fetching logic
   const pictures = []; // Empty array means no pictures
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Activité</Text>
-        <View style={styles.icons}>
-          <TouchableOpacity style={styles.circleIcon} onPress={() => navigation.navigate('Notifications')}>
-            <Image source={require('../assets/images/notification.png')} style={styles.notifIcon} />
+      <View style={styles.headerBox}>
+        <Text style={styles.headerTitle}>Activité</Text>
+        <View style={styles.headerIcons}>
+          <TouchableOpacity style={[styles.roundIcon, { backgroundColor: '#000' }]}
+            onPress={() => {}}>
+            <FontAwesome name="gift" size={24} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
+            onPress={() => navigation.navigate('Notifications')}>
+            <Ionicons name="notifications-outline" size={24} color="#222" />
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Carrousel horizontal des épingles amis */}
-      <Text style={styles.carouselTitle}>Epingles de mes amis</Text>
-      {loadingPins ? <ActivityIndicator style={{ marginVertical: 12 }} /> : null}
       <FlatList
         data={friendPins}
         keyExtractor={item => item.pinId}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginBottom: 16 }}
-        contentContainerStyle={{ paddingLeft: 8, paddingRight: 8 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         renderItem={({ item }) => (
-          <View style={styles.pinCard}>
-            <View style={styles.pinHeader}>
-              <Image source={{ uri: item.userAvatar || 'https://ui-avatars.com/api/?name=Friend' }} style={styles.avatar} />
-              <Text style={styles.pinPseudo}>{item.userPseudo || 'Ami'}</Text>
-              <Text style={styles.pinDate}>{item.pinnedAt ? new Date(item.pinnedAt._seconds ? item.pinnedAt._seconds * 1000 : item.pinnedAt).toLocaleDateString() : ''}</Text>
+          <View style={styles.activityCard}>
+            <View style={styles.activityHeader}>
+              <View style={styles.avatarCircle}>
+                {/* Placeholder avatar blanc */}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.activityName}>{item.userPseudo || 'Jules'}</Text>
+                <Text style={styles.activitySubtitle}>Offert par François</Text>
+              </View>
+              <Text style={styles.activityTime}>{item.pinnedAt ? 'Il y a 1 heure' : ''}</Text>
             </View>
-            <Image source={{ uri: item.photoUrl || '' }} style={styles.pinPhoto} />
-            <View style={styles.pinActions}>
-              <Text style={styles.actionIcon}>🤍</Text>
-              <Text style={styles.actionIcon}>💬</Text>
+            <View style={styles.activityImageBox}>
+              {item.photoUrl ? (
+                <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
+              ) : null}
+            </View>
+            <View style={styles.activityActions}>
+              <Ionicons name="heart-outline" size={24} color="#ddd" style={{ marginRight: 12 }} />
+              <Ionicons name="chatbubble-ellipses-outline" size={24} color="#ddd" />
             </View>
           </View>
         )}
-        ListEmptyComponent={!loadingPins ? <Text style={styles.empty}>Aucune épingle d'ami</Text> : null}
+        ListEmptyComponent={!loadingPins ? <Text style={styles.empty}>Aucune activité</Text> : null}
       />
-
-      {/* Modal pour afficher la photo en grand */}
-      <Modal visible={!!selectedPin} transparent animationType="fade" onRequestClose={() => setSelectedPin(null)}>
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.closeModal} onPress={() => setSelectedPin(null)}>
-            <Ionicons name="close" size={36} color="#fff" />
-          </TouchableOpacity>
-          {selectedPin && (
-            <Image
-              source={{ uri: selectedPin.photoUrl }}
-              style={styles.fullImage}
-            />
-          )}
-        </View>
-      </Modal>
+      {loadingPins && <ActivityIndicator style={{ marginTop: 24 }} />}
     </View>
   );
 }
@@ -93,26 +89,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f3f4f6',
-    paddingTop: 60,
-    paddingHorizontal: 20,
+    padding: 0,
+    paddingTop: 15,
   },
-  header: {
+  headerBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 32,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#f3f4f6',
   },
-  icons: {
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#111',
+  },
+  headerIcons: {
     flexDirection: 'row',
     gap: 16,
   },
-  circleIcon: {
-    backgroundColor: '#ff4d2e',
-    borderRadius: 20,
-    padding: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  roundIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
   userInfo: {
     flexDirection: 'row',
@@ -134,7 +138,8 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   placeholderImage: {
-    height: 280,
+    height: 680,
+    width: 280,
     backgroundColor: '#d1d5db',
     borderRadius: 8,
     justifyContent: 'center',
@@ -175,11 +180,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   pinCard: {
-    width: 260,
+    width: 320,
     backgroundColor: '#fff',
     borderRadius: 24,
-    marginRight: 16,
-    padding: 12,
+    marginRight: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -206,9 +211,9 @@ const styles = StyleSheet.create({
   },
   pinPhoto: {
     width: '100%',
-    height: 160,
-    borderRadius: 16,
-    marginBottom: 8,
+    height: 220,
+    borderRadius: 18,
+    marginBottom: 10,
     backgroundColor: '#eee',
   },
   pinActions: {
@@ -244,5 +249,63 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     borderRadius: 18,
     backgroundColor: '#222',
+  },
+  activityCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginBottom: 24,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  activityName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111',
+  },
+  activitySubtitle: {
+    fontSize: 14,
+    color: '#444',
+    marginTop: 2,
+  },
+  activityTime: {
+    fontSize: 13,
+    color: '#bbb',
+    marginLeft: 8,
+  },
+  activityImageBox: {
+    width: '100%',
+    aspectRatio: 1.5,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  activityImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  activityActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 8,
   },
 });

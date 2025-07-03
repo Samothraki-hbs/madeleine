@@ -24,7 +24,7 @@ export default function MainTabs() {
         return;
       }
       try {
-        const response = await fetch('http://192.168.0.14:3000/me', {
+        const response = await fetch('http://192.168.0.11:3000/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.status === 401) {
@@ -55,13 +55,13 @@ export default function MainTabs() {
         },
         tabBarIcon: ({ color, size, focused }) => {
           if (route.name === 'Activité') {
-            return <Ionicons name={focused ? 'home' : 'home-outline'} size={28} color={color} />;
+            return <Ionicons name={focused ? 'time' : 'time-outline'} size={28} color={color} />;
           }
           if (route.name === 'Mes albums') {
-            return <MaterialIcons name={focused ? 'photo-album' : 'photo-album'} size={28} color={color} />;
+            return <Ionicons name={focused ? 'folder-open' : 'folder-open-outline'} size={28} color={color} />;
           }
           if (route.name === 'Mon profil') {
-            return <Ionicons name={focused ? 'person' : 'person-outline'} size={28} color={color} />;
+            return <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} size={28} color={color} />;
           }
           return null;
         },

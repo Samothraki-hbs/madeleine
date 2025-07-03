@@ -1,11 +1,52 @@
 // le main, ce qui lance tout
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import SignupNavigator from './navigation/SignupNavigator';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { Notifications } from './firebase/firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+function registerForPushNotificationsAsync() {
+  return new Promise(async (resolve, reject) => {
+    let token;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') {
+      return resolve(null);
+    }
+    token = (await Notifications.getExpoPushTokenAsync()).data;
+    resolve(token);
+  });
+}
 
 export default function App() {
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      (async () => {
+        const token = await registerForPushNotificationsAsync();
+        if (token) {
+          const userToken = await AsyncStorage.getItem('token');
+          if (userToken) {
+            await fetch('http://192.168.0.11:3000/users/me/fcm-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${userToken}`,
+              },
+              body: JSON.stringify({ fcmToken: token }),
+            });
+          }
+        }
+      })();
+    }
+  }, []);
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>

@@ -19,7 +19,7 @@ export default function RechercheAmi() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.14:3000/users?pseudo=' + encodeURIComponent(text), {
+      const response = await fetch('http://192.168.0.11:3000/users?pseudo=' + encodeURIComponent(text), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -41,7 +41,7 @@ export default function RechercheAmi() {
     setMessage('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.14:3000/friend-request', {
+      const response = await fetch('http://192.168.0.11:3000/friend-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

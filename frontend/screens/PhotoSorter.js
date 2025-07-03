@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Swiper from 'react-native-deck-swiper';
 import { View, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,10 +7,12 @@ const { width, height } = Dimensions.get('window');
 
 export default function PhotoSorter({ photos = [], onSwipe = () => {}, onClose }) {
   const [cardIndex, setCardIndex] = useState(0);
-  if (cardIndex >= photos.length) {
-    if (onClose) onClose();
-    return null;
-  }
+
+  useEffect(() => {
+    if (cardIndex >= photos.length) {
+      if (onClose) onClose();
+    }
+  }, [cardIndex, photos.length, onClose]);
 
   // Carte : 90% largeur, 70% hauteur, centrée
   const CARD_WIDTH = width * 0.9;
@@ -21,11 +23,13 @@ export default function PhotoSorter({ photos = [], onSwipe = () => {}, onClose }
       onSwipe(photos[cardIndex], direction);
     }
     if (cardIndex + 1 >= photos.length) {
-      if (onClose) onClose();
+      if (direction !== 'top' && onClose) onClose();
     } else {
       setCardIndex(idx => idx + 1);
     }
   };
+
+  if (cardIndex >= photos.length) return null;
 
   return (
     <View style={styles.overlay}>

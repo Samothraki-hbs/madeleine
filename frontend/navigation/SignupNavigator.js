@@ -20,7 +20,7 @@ export default function SignupNavigator() {
     <Stack.Navigator>
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
         <Stack.Screen name="Pseudo" component={PseudoScreen} />
-        <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: true }} />
+        <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="RechercheAmi" component={RechercheAmi} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
         <Stack.Screen name="Album" component={AlbumScreen} />

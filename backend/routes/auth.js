@@ -5,7 +5,7 @@ const db = require('../db');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const upload = multer({ limits: { files: 5 } });
-const { bucket } = require('../db');
+const { bucket, admin } = require('../db');
 
 // POST /signup
 router.post('/signup', async (req, res) => {
@@ -247,6 +247,26 @@ router.post('/albums', authenticateToken, async (req, res) => {
       createdBy,
       createdAt: new Date(),
     });
+    // Notifier chaque membre ajouté (hors créateur)
+    for (const memberId of members) {
+      if (memberId !== createdBy) {
+        const userDoc = await db.collection('users').doc(memberId).get();
+        const fcmToken = userDoc.exists ? userDoc.data().fcmToken : null;
+        if (fcmToken) {
+          await admin.messaging().send({
+            token: fcmToken,
+            notification: {
+              title: 'Ajouté à un album',
+              body: `Vous avez été ajouté à l'album "${name}" !`,
+            },
+            data: {
+              albumId: albumRef.id,
+              albumName: name,
+            },
+          });
+        }
+      }
+    }
     res.status(201).json({ albumId: albumRef.id });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
@@ -303,6 +323,10 @@ router.post('/albums/:id/photos', authenticateToken, upload.array('photos', 5), 
     return res.status(400).json({ error: 'Aucun fichier reçu' });
   }
   try {
+    // Récupérer les membres de l'album
+    const albumDoc = await db.collection('albums').doc(albumId).get();
+    const albumData = albumDoc.data();
+    const members = albumData.members || [];
     const urls = [];
     for (const file of req.files) {
       // Upload vers Firebase Storage à la racine (warehouse)
@@ -321,8 +345,22 @@ router.post('/albums/:id/photos', authenticateToken, upload.array('photos', 5), 
         photoId: photoRef.id,
         albumId,
         status: 'kept',
+        vu: true,
         createdAt: new Date(),
       });
+      // Créer le statut 'pending' pour chaque autre membre
+      for (const memberId of members) {
+        if (memberId !== uploaderId) {
+          await db.collection('userPhotoStatus').add({
+            userId: memberId,
+            photoId: photoRef.id,
+            albumId,
+            status: 'pending',
+            vu: false,
+            createdAt: new Date(),
+          });
+        }
+      }
     }
     res.status(201).json({ urls });
   } catch (err) {
@@ -361,9 +399,11 @@ router.get('/albums/:id/photos-to-sort', authenticateToken, async (req, res) => 
       .where('userId', '==', userId)
       .where('albumId', '==', albumId)
       .get();
-    const donePhotoIds = statusSnap.docs.map(doc => doc.data().photoId);
-    // Filtre les photos non triées
-    const toSort = allPhotos.filter(p => !donePhotoIds.includes(p.photoId));
+    // Photos à trier = statut 'pending' ou vu: false
+    const toSortPhotoIds = statusSnap.docs
+      .filter(doc => doc.data().status === 'pending' || doc.data().vu === false)
+      .map(doc => doc.data().photoId);
+    const toSort = allPhotos.filter(p => toSortPhotoIds.includes(p.photoId));
     res.json({ photos: toSort });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
@@ -379,9 +419,88 @@ router.post('/photos/:photoId/status', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Statut invalide' });
   }
   try {
-    await db.collection('userPhotoStatus').add({ userId, photoId, albumId, status, createdAt: new Date() });
+    // Chercher un statut existant
+    const statusSnap = await db.collection('userPhotoStatus')
+      .where('userId', '==', userId)
+      .where('photoId', '==', photoId)
+      .limit(1)
+      .get();
+    if (!statusSnap.empty) {
+      // Mettre à jour le statut existant
+      const docId = statusSnap.docs[0].id;
+      await db.collection('userPhotoStatus').doc(docId).update({ status: status === 'pinned' ? 'kept' : status, vu: true });
+    } else {
+      // Créer le statut si inexistant
+      await db.collection('userPhotoStatus').add({
+        userId,
+        photoId,
+        albumId,
+        status: status === 'pinned' ? 'kept' : status,
+        vu: true,
+        createdAt: new Date(),
+      });
+    }
     if (status === 'pinned') {
-      await db.collection('pins').add({ userId, photoId, albumId, pinnedAt: new Date() });
+      // Récupérer l'URL de la photo
+      const photoDoc = await db.collection('photos').doc(photoId).get();
+      const photoUrl = photoDoc.exists ? photoDoc.data().url : '';
+      await db.collection('pins').add({ userId, photoId, albumId, photoUrl, pinnedAt: new Date() });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Route dédiée pour épingler une photo
+router.post('/photos/:photoId/pin', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  const photoId = req.params.photoId;
+  const { albumId } = req.body;
+  try {
+    // Chercher un statut existant
+    const statusSnap = await db.collection('userPhotoStatus')
+      .where('userId', '==', userId)
+      .where('photoId', '==', photoId)
+      .limit(1)
+      .get();
+    if (!statusSnap.empty) {
+      // Mettre à jour le statut existant
+      const docId = statusSnap.docs[0].id;
+      await db.collection('userPhotoStatus').doc(docId).update({ status: 'kept', vu: true });
+    } else {
+      // Créer le statut si inexistant
+      await db.collection('userPhotoStatus').add({
+        userId,
+        photoId,
+        albumId,
+        status: 'kept',
+        vu: true,
+        createdAt: new Date(),
+      });
+    }
+    // Récupérer la photo pour trouver l'uploader
+    const photoDoc = await db.collection('photos').doc(photoId).get();
+    const photoUrl = photoDoc.exists ? photoDoc.data().url : '';
+    const uploaderId = photoDoc.exists ? photoDoc.data().uploaderId : null;
+    await db.collection('pins').add({ userId, photoId, albumId, photoUrl, pinnedAt: new Date() });
+    // Envoyer une notification à l'uploader si ce n'est pas le même utilisateur
+    if (uploaderId && uploaderId !== userId) {
+      const uploaderDoc = await db.collection('users').doc(uploaderId).get();
+      const fcmToken = uploaderDoc.exists ? uploaderDoc.data().fcmToken : null;
+      if (fcmToken) {
+        await admin.messaging().send({
+          token: fcmToken,
+          notification: {
+            title: 'Nouvelle épingle !',
+            body: 'Quelqu\'un a épinglé une de vos photos.',
+          },
+          data: {
+            photoId,
+            albumId,
+          },
+        });
+      }
     }
     res.json({ success: true });
   } catch (err) {
@@ -415,6 +534,19 @@ router.get('/pins/friends', authenticateToken, async (req, res) => {
       pins = pinsSnap.docs.map(doc => ({ pinId: doc.id, ...doc.data() }));
     }
     res.json({ pins });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Enregistrer le token FCM pour l'utilisateur connecté
+router.post('/users/me/fcm-token', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  const { fcmToken } = req.body;
+  if (!fcmToken) return res.status(400).json({ error: 'Token manquant' });
+  try {
+    await db.collection('users').doc(userId).update({ fcmToken });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
   }

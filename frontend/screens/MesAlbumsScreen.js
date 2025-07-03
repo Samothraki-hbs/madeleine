@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function MesAlbumsScreen() {
   const [albums, setAlbums] = useState([]);
@@ -18,7 +19,7 @@ export default function MesAlbumsScreen() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.14:3000/albums', {
+      const response = await fetch('http://192.168.0.11:3000/albums', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -34,7 +35,7 @@ export default function MesAlbumsScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       // On récupère les amis (userA = moi, userB = ami)
-      const response = await fetch('http://192.168.0.14:3000/friends', {
+      const response = await fetch('http://192.168.0.11:3000/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -45,9 +46,11 @@ export default function MesAlbumsScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchAlbums();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchAlbums();
+    }, [])
+  );
 
   const openModal = async () => {
     setAlbumName('');
@@ -66,7 +69,7 @@ export default function MesAlbumsScreen() {
     setError('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.14:3000/albums', {
+      const response = await fetch('http://192.168.0.11:3000/albums', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,6 +78,11 @@ export default function MesAlbumsScreen() {
         body: JSON.stringify({ name: albumName, memberIds: selectedFriends }),
       });
       if (response.ok) {
+        const data = await response.json();
+        setAlbums(prev => [
+          { albumId: data.albumId, name: albumName, members: [...selectedFriends, 'moi'], createdBy: 'moi', createdAt: new Date() },
+          ...prev
+        ]);
         setModalVisible(false);
         fetchAlbums();
       } else {
@@ -95,19 +103,30 @@ export default function MesAlbumsScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.bigButton} onPress={openModal}>
-        <Text style={styles.bigButtonText}>+ Créer un album partagé</Text>
-      </TouchableOpacity>
+      <View style={styles.headerBox}>
+        <Text style={styles.headerTitle}>Mes albums</Text>
+        <TouchableOpacity style={styles.headerIcon} onPress={openModal}>
+          <Ionicons name="folder-open-outline" size={28} color="#222" />
+          <Ionicons name="add" size={16} color="#222" style={{ position: 'absolute', right: 2, bottom: 2, backgroundColor: '#fff', borderRadius: 8 }} />
+        </TouchableOpacity>
+      </View>
       {loading ? <ActivityIndicator style={{ marginTop: 32 }} /> : null}
       <FlatList
         data={albums}
         keyExtractor={item => item.albumId}
+        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.albumRow}
+            style={styles.albumCard}
             onPress={() => navigation.navigate('Album', { albumId: item.albumId, albumName: item.name })}
           >
-            <Text style={styles.albumName}>{item.name}</Text>
+            <View style={styles.albumCardLeft}>
+              <Text style={styles.albumPhotoCount}>{item.photoCount ? item.photoCount + ' photos' : '0 photo'}</Text>
+              <Text style={styles.albumName}>{item.name}</Text>
+            </View>
+            <View style={styles.albumCardRight}>
+              <Text style={styles.albumLastActivity}>Dernière activité il y a 1 heure</Text>
+            </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucun album...</Text> : null}
@@ -154,39 +173,68 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f3f4f6',
-    padding: 24,
-    paddingTop: 48,
+    padding: 0,
+    paddingTop: 15,
   },
-  bigButton: {
-    backgroundColor: '#ff4d2e',
-    borderRadius: 32,
-    paddingVertical: 24,
+  headerBox: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    justifyContent: 'space-between',
+    paddingTop: 32,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#f3f4f6',
   },
-  bigButtonText: {
-    color: '#fff',
+  headerTitle: {
+    fontSize: 32,
     fontWeight: 'bold',
-    fontSize: 22,
+    color: '#111',
   },
-  albumRow: {
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     elevation: 2,
   },
+  albumCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginBottom: 24,
+    padding: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  albumCardLeft: {
+    flex: 1,
+  },
+  albumCardRight: {
+    marginLeft: 12,
+  },
+  albumPhotoCount: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#111',
+  },
   albumName: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 18,
     color: '#222',
+    marginTop: 2,
+  },
+  albumLastActivity: {
+    fontSize: 15,
+    color: '#bbb',
+    fontWeight: '400',
   },
   empty: {
     fontSize: 18,

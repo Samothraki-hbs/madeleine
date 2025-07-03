@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Modal, Dimensions, Animated, PanResponder } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import PhotoSorter from './PhotoSorter';
+import { IconSymbol } from '../components/ui/IconSymbol';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function AlbumScreen({ route }) {
   const { albumId, albumName } = route.params;
@@ -17,12 +20,13 @@ export default function AlbumScreen({ route }) {
   const [currentSortIndex, setCurrentSortIndex] = useState(0);
   const window = Dimensions.get('window');
   const [pan] = useState(new Animated.ValueXY());
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const fetchPhotos = async () => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`http://192.168.0.14:3000/albums/${albumId}/photos`, {
+      const response = await fetch(`http://192.168.0.11:3000/albums/${albumId}/photos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -37,7 +41,7 @@ export default function AlbumScreen({ route }) {
   const fetchPhotosToSort = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`http://192.168.0.14:3000/albums/${albumId}/photos-to-sort`, {
+      const response = await fetch(`http://192.168.0.11:3000/albums/${albumId}/photos-to-sort`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -48,10 +52,12 @@ export default function AlbumScreen({ route }) {
     }
   };
 
-  useEffect(() => {
-    fetchPhotos();
-    fetchPhotosToSort();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchPhotos();
+      fetchPhotosToSort();
+    }, [albumId])
+  );
 
   const pickImages = async () => {
     setError('');
@@ -117,7 +123,7 @@ export default function AlbumScreen({ route }) {
           type: 'image/jpeg',
         });
       });
-      const response = await fetch(`http://192.168.0.14:3000/albums/${albumId}/photos`, {
+      const response = await fetch(`http://192.168.0.11:3000/albums/${albumId}/photos`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -157,11 +163,19 @@ export default function AlbumScreen({ route }) {
     const photo = photosToSort[currentSortIndex];
     try {
       const token = await AsyncStorage.getItem('token');
-      await fetch(`http://192.168.0.14:3000/photos/${photo.photoId}/status`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ albumId, status }),
-      });
+      if (status === 'pinned') {
+        await fetch(`http://192.168.0.11:3000/photos/${photo.photoId}/pin`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ albumId }),
+        });
+      } else {
+        await fetch(`http://192.168.0.11:3000/photos/${photo.photoId}/status`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ albumId, status }),
+        });
+      }
     } catch {}
     pan.setValue({ x: 0, y: 0 });
     if (currentSortIndex + 1 < photosToSort.length) {
@@ -174,34 +188,61 @@ export default function AlbumScreen({ route }) {
     }
   };
 
+  // Animation header
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [0, -120],
+    extrapolate: 'clamp',
+  });
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{albumName}</Text>
+      <Animated.View style={[styles.animatedHeader, { transform: [{ translateY: headerTranslateY }], opacity: headerOpacity }]}> 
+        <View style={styles.headerContent}>
+          <View style={styles.albumTitleContainer}>
+            <Text style={styles.albumTitle}>{albumName}</Text>
+          </View>
+          <View style={styles.addPhotoIconContainer}>
+            <TouchableOpacity style={styles.addPhotoIconBox} onPress={pickImages}>
+              <IconSymbol name="paperplane.fill" size={40} color="#888" />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.subtitle}>Photos de l'album :</Text>
+        </View>
+      </Animated.View>
       {photosToSort.length > 0 && !sorting && (
         <TouchableOpacity style={styles.envelopeBtn} onPress={() => { setSorting(true); setCurrentSortIndex(0); }}>
           <Image source={require('../assets/images/envelope.png')} style={styles.envelopeImg} />
           <Text style={styles.envelopeText}>Nouvelles photos à trier !</Text>
         </TouchableOpacity>
       )}
-      <TouchableOpacity style={styles.uploadBtn} onPress={pickImages}>
-        <Text style={styles.uploadText}>Ajouter des photos</Text>
-      </TouchableOpacity>
       {selectedImages.length > 0 && (
         <>
-          <ScrollView horizontal style={{ marginVertical: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedScroll} contentContainerStyle={{ alignItems: 'center', paddingVertical: 8 }}>
             {selectedImages.map((img, i) => (
-              <Image key={i} source={{ uri: img.uri }} style={styles.selectedThumb} />
+              <View key={i} style={styles.selectedLargeThumbContainer}>
+                <Image source={{ uri: img.uri }} style={styles.selectedLargeThumb} />
+                <TouchableOpacity style={styles.removeIcon} onPress={() => setSelectedImages(selectedImages.filter((_, idx) => idx !== i))}>
+                  <MaterialIcons name="close" size={28} color="#fff" />
+                </TouchableOpacity>
+              </View>
             ))}
           </ScrollView>
-          <TouchableOpacity style={styles.uploadBtnSmall} onPress={uploadPhotos} disabled={uploading}>
-            <Text style={styles.uploadTextSmall}>{uploading ? 'Envoi...' : 'Envoyer les photos'}</Text>
-          </TouchableOpacity>
+          <View style={{ alignItems: 'center', marginTop: 8 }}>
+            <TouchableOpacity style={styles.uploadBtnLarge} onPress={uploadPhotos} disabled={uploading}>
+              <Text style={styles.uploadTextLarge}>{uploading ? 'Envoi...' : 'Envoyer les photos'}</Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Text style={styles.subtitle}>Photos de l'album :</Text>
       {loading ? <ActivityIndicator style={{ marginTop: 16 }} /> : null}
-      <FlatList
+      <Animated.FlatList
         data={photos}
         keyExtractor={item => item.photoId}
         numColumns={2}
@@ -212,6 +253,12 @@ export default function AlbumScreen({ route }) {
         )}
         ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune photo</Text> : null}
         contentContainerStyle={{ paddingBottom: 40 }}
+        style={{ flex: 1 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
       />
       {sorting && photosToSort.length > 0 && (
         <Modal visible={sorting} transparent animationType="fade">
@@ -222,15 +269,21 @@ export default function AlbumScreen({ route }) {
                 let status = 'kept';
                 if (direction === 'left') status = 'archived';
                 if (direction === 'right') status = 'kept';
-                if (direction === 'top') status = 'pinned';
                 const token = await AsyncStorage.getItem('token');
-                await fetch(`http://192.168.0.14:3000/photos/${photo.photoId}/status`, {
-                  method: 'POST',
-                  headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ albumId, status }),
-                });
-                // Met à jour la galerie immédiatement si la photo est gardée ou épinglée
-                if (status === 'kept' || status === 'pinned') {
+                if (direction === 'top') {
+                  await fetch(`http://192.168.0.11:3000/photos/${photo.photoId}/pin`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ albumId }),
+                  });
+                } else {
+                  await fetch(`http://192.168.0.11:3000/photos/${photo.photoId}/status`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ albumId, status }),
+                  });
+                }
+                if (direction === 'right' || direction === 'top') {
                   setPhotos(prev => [...prev, photo]);
                 }
                 setPhotosToSort(prev => prev.filter(p => p.photoId !== photo.photoId));
@@ -252,49 +305,173 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f3f4f6',
-    padding: 24,
-    paddingTop: 48,
+    padding: 0,
+    paddingTop: 15,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
+  animatedHeader: {
+    zIndex: 10,
+    backgroundColor: 'transparent',
   },
-  subtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
+  headerContent: {
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingBottom: 12,
+    paddingTop: 8,
+    paddingHorizontal: 0,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    marginHorizontal: 24,
     marginTop: 16,
+  },
+  albumTitleContainer: {
+    marginTop: 10,
+    marginBottom: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  albumTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#222',
+    letterSpacing: 1.5,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.10)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    borderRadius: 18,
+    backgroundColor: '#f7f7f7',
+    overflow: 'hidden',
+  },
+  addPhotoIconContainer: {
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  addPhotoIconBox: {
+    width: 70,
+    height: 70,
+    borderRadius: 18,
+    backgroundColor: '#e0e0e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  selectedScroll: {
+    minHeight: 180,
+    maxHeight: 220,
+    marginBottom: 8,
+  },
+  selectedLargeThumbContainer: {
+    width: 210,
+    height: 210,
+    marginRight: 18,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#f3f3f3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  selectedLargeThumb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+  },
+  removeIcon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#ff4d2e',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  uploadBtnLarge: {
+    backgroundColor: '#ff4d2e',
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 38,
+    alignItems: 'center',
+    marginTop: 0,
+    shadowColor: '#ff4d2e',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  uploadTextLarge: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 20,
+    letterSpacing: 0.5,
   },
   uploadBtn: {
     backgroundColor: '#ff4d2e',
-    borderRadius: 20,
-    paddingVertical: 12,
+    borderRadius: 28,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     alignItems: 'center',
-    marginBottom: 8,
-    marginTop: 8,
+    marginBottom: 12,
+    marginTop: 12,
+    shadowColor: '#ff4d2e',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 3,
   },
   uploadText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 18,
+    fontWeight: '700',
+    fontSize: 20,
+    letterSpacing: 0.5,
   },
   selectedThumb: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 8,
+    width: 70,
+    height: 70,
+    borderRadius: 14,
+    marginRight: 10,
+    marginBottom: 4,
+    borderWidth: 2,
+    borderColor: '#ff4d2e22',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 2,
   },
   photoCell: {
     flex: 1,
     aspectRatio: 1,
-    margin: 6,
+    margin: 8,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   photo: {
     width: '100%',
@@ -303,9 +480,10 @@ const styles = StyleSheet.create({
   },
   empty: {
     fontSize: 18,
-    color: '#888',
+    color: '#bbb',
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: 60,
+    fontWeight: '500',
   },
   error: {
     color: '#ff4d2e',
@@ -315,18 +493,23 @@ const styles = StyleSheet.create({
   },
   uploadBtnSmall: {
     backgroundColor: '#ff4d2e',
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
     alignItems: 'center',
     alignSelf: 'flex-start',
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: '#ff4d2e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
   uploadTextSmall: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
+    fontWeight: '700',
+    fontSize: 16,
   },
   envelopeBtn: {
     alignItems: 'center',
@@ -394,5 +577,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     flex: 1,
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#222',
+    textAlign: 'center',
+    marginTop: 8,
   },
 }); 
