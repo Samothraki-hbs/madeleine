@@ -1,26 +1,20 @@
 // firebaseAuth.js
-import { getAuth, signInWithPhoneNumber, RecaptchaVerifier } from 'firebase/auth';
-import { firebaseApp } from './firebaseConfig';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { app } from "./firebaseConfig";
 
-const auth = getAuth(firebaseApp);
+const auth = getAuth(app);
 
-export const setupRecaptcha = () => {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(
-      'recaptcha-container',
-      {
-        size: 'invisible',
-        callback: (response) => {
-          console.log('reCAPTCHA resolved');
-        },
-      },
-      auth
-    );
-  }
+// Inscription
+export const registerWithEmail = async (email, password) => {
+  return await createUserWithEmailAndPassword(auth, email, password);
 };
 
-export const loginWithPhoneNumber = async (phoneNumber) => {
-  setupRecaptcha();
-  const appVerifier = window.recaptchaVerifier;
-  return await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+// Connexion
+export const loginWithEmail = async (email, password) => {
+  return await signInWithEmailAndPassword(auth, email, password);
+};
+
+// Déconnexion
+export const logout = async () => {
+  return await signOut(auth);
 };

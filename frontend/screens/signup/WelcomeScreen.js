@@ -42,9 +42,15 @@ export default function WelcomeScreen({ navigation }) {
       </View>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('Pseudo')}
+        onPress={() => navigation.navigate('MailScreen')}
       >
         <Text style={styles.buttonText}>Continuer</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.button, { marginTop: 16 }]}
+        onPress={() => navigation.navigate('LoginScreen')}
+      >
+        <Text style={styles.buttonText}>Connexion</Text>
       </TouchableOpacity>
     </View>
   );
