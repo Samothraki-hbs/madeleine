@@ -25,9 +25,9 @@ export default {
       favicon: "./assets/images/favicon.png"
     },
     extra: {
-      eas: {
-        projectId: "da313183-c107-482d-84c4-679ec5af3c31"
-      }
+      // eas: {
+      //   projectId: "da313183-c107-482d-84c4-679ec5af3c31"
+      // }
     }
     // Ajoute ici d'autres champs si EAS te le demande (owner, extra, etc.)
   }
