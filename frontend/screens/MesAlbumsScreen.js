@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, A
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import NouvelAlbumScreen from './NouvelAlbumScreen';
 
 export default function MesAlbumsScreen() {
   const [albums, setAlbums] = useState([]);
@@ -20,6 +21,7 @@ export default function MesAlbumsScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await fetch('http://192.168.0.50:3000/albums', {
+
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -36,6 +38,7 @@ export default function MesAlbumsScreen() {
       const token = await AsyncStorage.getItem('token');
       // On récupère les amis (userA = moi, userB = ami)
       const response = await fetch('http://192.168.0.50:3000/friends', {
+
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -70,6 +73,7 @@ export default function MesAlbumsScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       const response = await fetch('http://192.168.0.50:3000/albums', {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +109,7 @@ export default function MesAlbumsScreen() {
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <Text style={styles.headerTitle}>Mes albums</Text>
-        <TouchableOpacity style={styles.headerIcon} onPress={openModal}>
+        <TouchableOpacity style={styles.headerIcon} onPress={() => navigation.navigate('NouvelAlbum')}>
           <Ionicons name="folder-open-outline" size={28} color="#222" />
           <Ionicons name="add" size={16} color="#222" style={{ position: 'absolute', right: 2, bottom: 2, backgroundColor: '#fff', borderRadius: 8 }} />
         </TouchableOpacity>

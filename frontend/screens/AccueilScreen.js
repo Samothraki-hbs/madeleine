@@ -15,7 +15,7 @@ export default function AccueilScreen() {
     setLoadingPins(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.11:3000/pins/friends', {
+      const response = await fetch('http://192.168.213.64/pins/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
