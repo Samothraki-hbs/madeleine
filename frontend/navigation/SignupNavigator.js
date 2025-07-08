@@ -12,6 +12,8 @@ import MainTabs from './MainTabs';
 import RechercheAmi from '../screens/RechercheAmi';
 import NotificationScreen from '../screens/NotificationScreen';
 import AlbumScreen from '../screens/AlbumScreen';
+import NouvelAlbumScreen from '../screens/NouvelAlbumScreen';
+import SelectionAmisScreen from '../screens/SelectionAmisScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +26,8 @@ export default function SignupNavigator() {
         <Stack.Screen name="RechercheAmi" component={RechercheAmi} />
         <Stack.Screen name="Notifications" component={NotificationScreen} />
         <Stack.Screen name="Album" component={AlbumScreen} />
+        <Stack.Screen name="NouvelAlbum" component={NouvelAlbumScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="SelectionAmis" component={SelectionAmisScreen} />
     </Stack.Navigator>
   );
 }
