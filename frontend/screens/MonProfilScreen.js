@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, ActivityIndicator, Modal, TextInput, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuth } from "firebase/auth";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { app } from "../firebase/firebaseConfig"; // adapte le chemin si besoin
 
 export default function MonProfilScreen({ navigation }) {
   const [pseudo, setPseudo] = useState('');
@@ -38,8 +41,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-
-      const response = await fetch('http://192.168.0.20:3000/pins/me', {
+      const response = await fetch('http://10.17.8.189:3000/pins/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -51,81 +53,30 @@ export default function MonProfilScreen({ navigation }) {
     setLoading(false);
   };
 
-  const fetchFriends = async () => {
-    setLoadingFriends(true);
+  const fetchPseudo = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/friends', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (response.ok && data.friends) setFriends(data.friends);
-      else setFriends([]);
-    } catch (err) {
-      setFriends([]);
-    }
-    setLoadingFriends(false);
-  };
-
-  const handleSearch = async (text) => {
-    setSearch(text);
-    setSearchMessage('');
-    if (text.length < 2) {
-      setResults([]);
-      return;
-    }
-    setLoadingSearch(true);
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/users?pseudo=' + encodeURIComponent(text), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setResults(data.users);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const user = auth.currentUser;
+      if (!user) {
+        setPseudo('');
+        return;
+      }
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        setPseudo(userDoc.data().pseudo);
       } else {
-        setResults([]);
-        setSearchMessage(data.error || 'Erreur lors de la recherche');
+        setPseudo('');
       }
     } catch (err) {
-      setResults([]);
-      setSearchMessage('Erreur réseau');
+      setPseudo('');
     }
-    setLoadingSearch(false);
   };
-
-  const sendFriendRequest = async (toUserId) => {
-    setSending(toUserId);
-    setSearchMessage('');
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/friend-request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ toUserId }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setSearchMessage('Demande envoyée !');
-      } else {
-        setSearchMessage(data.error || 'Erreur lors de l\'envoi');
-      }
-    } catch (err) {
-      setSearchMessage('Erreur réseau');
-    }
-    setSending(null);
-  };
-
-  // Helper pour savoir si on peut envoyer une demande
-  const canSendRequest = (item) => item.relation === 'none' && sending !== item.userId;
 
   useEffect(() => {
     fetchUser();
     fetchPins();
-    fetchFriends();
+    fetchPseudo();
   }, []);
 
   // Pour la grille d'archives : 12 cases vides (exemple)
@@ -139,8 +90,15 @@ export default function MonProfilScreen({ navigation }) {
           <Text style={styles.headerTitle}>{pseudo}</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerActionBtn}><Ionicons name="settings-outline" size={22} color="#111" /></TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionBtn} onPress={() => setShowFriendsModal(true)}><Ionicons name="people-outline" size={22} color="#111" /></TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionBtn}>
+            <Ionicons name="stats-chart" size={22} color="#111" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => navigation.navigate('Settings')}>
+            <Ionicons name="settings-outline" size={22} color="#111" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => navigation.navigate('RechercheAmi')}>
+            <Ionicons name="people-outline" size={22} color="#111" />
+          </TouchableOpacity>
         </View>
       </View>
       <View style={styles.tabsRow}>

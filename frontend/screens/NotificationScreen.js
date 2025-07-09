@@ -13,8 +13,7 @@ export default function NotificationScreen() {
     setMessage('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.50:3000/friend-requests', {
-
+      const response = await fetch('http://10.17.8.189:3000/friend-requests', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -38,8 +37,7 @@ export default function NotificationScreen() {
     setMessage('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.50:3000/friend-request/respond', {
-
+      const response = await fetch('http://10.17.8.189:3000/friend-request/respond', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

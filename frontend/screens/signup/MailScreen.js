@@ -10,11 +10,14 @@ const MailScreen = ({ navigation }) => {
 
   const handleRegister = async () => {
     setError('');
+    if (!email || !password) {
+      setError('Veuillez remplir tous les champs');
+      return;
+    }
     setLoading(true);
     try {
-      const userCredential = await registerWithEmail(email, password);
-      // Inscription réussie : navigue vers la page de choix du pseudo
-      navigation.navigate('PseudoScreen');
+      await registerWithEmail(email, password); // ne crée que l'utilisateur Auth
+      navigation.navigate('PseudoScreen'); // passe à l'étape du pseudo
     } catch (err) {
       setError(err.message);
     } finally {

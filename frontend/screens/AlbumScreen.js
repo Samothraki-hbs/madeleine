@@ -26,7 +26,7 @@ export default function AlbumScreen({ route }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`http://192.168.213.64/albums/${albumId}/photos`, {
+      const response = await fetch(`http://10.17.8.189:3000/albums/${albumId}/photos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -41,7 +41,7 @@ export default function AlbumScreen({ route }) {
   const fetchPhotosToSort = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`http://192.168.213.64/albums/${albumId}/photos-to-sort`, {
+      const response = await fetch(`http://10.17.8.189:3000/albums/${albumId}/photos-to-sort`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -123,7 +123,7 @@ export default function AlbumScreen({ route }) {
           type: 'image/jpeg',
         });
       });
-      const response = await fetch(`http://192.168.213.64/albums/${albumId}/photos`, {
+      const response = await fetch(`http://10.17.8.189:3000/albums/${albumId}/photos`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -164,13 +164,13 @@ export default function AlbumScreen({ route }) {
     try {
       const token = await AsyncStorage.getItem('token');
       if (status === 'pinned') {
-        await fetch(`http://192.168.0.50/photos/${photo.photoId}/pin`, {
+        await fetch(`http://10.17.8.189:3000/photos/${photo.photoId}/pin`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ albumId }),
         });
       } else {
-        await fetch(`http://192.168.0.50/photos/${photo.photoId}/status`, {
+        await fetch(`http://10.17.8.189:3000/photos/${photo.photoId}/status`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ albumId, status }),
@@ -271,13 +271,13 @@ export default function AlbumScreen({ route }) {
                 if (direction === 'right') status = 'kept';
                 const token = await AsyncStorage.getItem('token');
                 if (direction === 'top') {
-                  await fetch(`http://192.168.0.50/photos/${photo.photoId}/pin`, {
+                  await fetch(`http://10.17.8.189:3000/photos/${photo.photoId}/pin`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ albumId }),
                   });
                 } else {
-                  await fetch(`http://192.168.0.50/photos/${photo.photoId}/status`, {
+                  await fetch(`http://10.17.8.189:3000/photos/${photo.photoId}/status`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ albumId, status }),

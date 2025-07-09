@@ -14,9 +14,6 @@ import RechercheAmi from '../screens/RechercheAmi';
 import NotificationScreen from '../screens/NotificationScreen';
 import AlbumScreen from '../screens/AlbumScreen';
 import LoginScreen from '../screens/login/LoginScreen';
-import NouvelAlbumScreen from '../screens/NouvelAlbumScreen';
-import SelectionAmisScreen from '../screens/SelectionAmisScreen';
-
 
 const Stack = createNativeStackNavigator();
 
@@ -31,9 +28,6 @@ export default function SignupNavigator() {
         <Stack.Screen name="Album" component={AlbumScreen} />
         <Stack.Screen name="LoginScreen" component={LoginScreen} />
         <Stack.Screen name="MailScreen" component={MailScreen} />
-        <Stack.Screen name="NouvelAlbum" component={NouvelAlbumScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="SelectionAmis" component={SelectionAmisScreen} />
-
     </Stack.Navigator>
   );
 }

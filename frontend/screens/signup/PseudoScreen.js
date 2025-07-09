@@ -1,33 +1,29 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { savePseudo } from '../../firebase/firebaseAuth';
 
 export default function PseudoScreen({ navigation }) {
   const [pseudo, setPseudo] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleContinue = async () => {
     if (pseudo.length < 3) {
-      alert('Le pseudo doit faire au moins 3 caractères');
+      setError('Le pseudo doit faire au moins 3 caractères');
       return;
     }
+    setLoading(true);
+    setError('');
     try {
-      const response = await fetch('http://192.168.0.11:3000/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pseudo }),
+      await savePseudo(pseudo);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
       });
-      const data = await response.json();
-      if (response.ok && data.token) {
-        await AsyncStorage.setItem('token', data.token);
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' }],
-        });
-      } else {
-        alert(data.error || 'Erreur lors de l\'inscription');
-      }
     } catch (err) {
-      alert('Erreur réseau');
+      setError(err.message || 'Erreur lors de l\'enregistrement du pseudo');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,9 +35,11 @@ export default function PseudoScreen({ navigation }) {
         onChangeText={setPseudo}
         placeholder="ex. Armand33"
         style={styles.input}
+        autoCapitalize="none"
       />
-      <TouchableOpacity style={styles.button} onPress={handleContinue}>
-        <Text style={styles.buttonText}>Commencer</Text>
+      {error ? <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text> : null}
+      <TouchableOpacity style={styles.button} onPress={handleContinue} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Commencer</Text>}
       </TouchableOpacity>
     </View>
   );

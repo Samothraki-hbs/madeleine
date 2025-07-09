@@ -10,7 +10,7 @@ export default function WelcomeScreen({ navigation }) {
       const token = await AsyncStorage.getItem('token');
       if (token) {
         try {
-          const response = await fetch('http://192.168.0.50/me', {
+          const response = await fetch('http://10.17.8.189:3000/me', {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (response.status === 401) {
