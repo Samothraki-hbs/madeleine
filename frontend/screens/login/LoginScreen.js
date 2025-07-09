@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import { loginWithEmail } from '../../firebase/firebaseAuth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -13,7 +14,8 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const userCredential = await loginWithEmail(email, password);
-      // Connexion réussie : navigation vers l'accueil, on remplace toute la pile
+      const token = await userCredential.user.getIdToken();
+      await AsyncStorage.setItem('token', token);
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],

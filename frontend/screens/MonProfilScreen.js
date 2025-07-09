@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuth } from "firebase/auth";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { app } from "../firebase/firebaseConfig"; // adapte le chemin si besoin
 
 export default function MonProfilScreen({ navigation }) {
-  const pseudo = 'Arthur'; // Hardcoded for now
+  const [pseudo, setPseudo] = useState('');
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPin, setSelectedPin] = useState(null);
@@ -26,8 +29,29 @@ export default function MonProfilScreen({ navigation }) {
     setLoading(false);
   };
 
+  const fetchPseudo = async () => {
+    try {
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const user = auth.currentUser;
+      if (!user) {
+        setPseudo('');
+        return;
+      }
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        setPseudo(userDoc.data().pseudo);
+      } else {
+        setPseudo('');
+      }
+    } catch (err) {
+      setPseudo('');
+    }
+  };
+
   useEffect(() => {
     fetchPins();
+    fetchPseudo();
   }, []);
 
   // Pour la grille d'archives : 12 cases vides (exemple)
@@ -41,9 +65,15 @@ export default function MonProfilScreen({ navigation }) {
           <Text style={styles.headerTitle}>{pseudo}</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerActionBtn}><Ionicons name="stats-chart" size={22} color="#111" /></TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionBtn}><Ionicons name="settings-outline" size={22} color="#111" /></TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionBtn} onPress={() => navigation.navigate('RechercheAmi')}><Ionicons name="people-outline" size={22} color="#111" /></TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionBtn}>
+            <Ionicons name="stats-chart" size={22} color="#111" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => navigation.navigate('Settings')}>
+            <Ionicons name="settings-outline" size={22} color="#111" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => navigation.navigate('RechercheAmi')}>
+            <Ionicons name="people-outline" size={22} color="#111" />
+          </TouchableOpacity>
         </View>
       </View>
       <View style={styles.tabsRow}>

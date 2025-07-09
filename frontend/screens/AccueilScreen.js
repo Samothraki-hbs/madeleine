@@ -4,6 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { FontAwesome } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function AccueilScreen() {
   const navigation = useNavigation();
@@ -36,13 +37,32 @@ export default function AccueilScreen() {
   // Replace this with your actual data fetching logic
   const pictures = []; // Empty array means no pictures
 
+  const openImagePicker = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert("Permission refusée !");
+      return;
+    }
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+    if (!pickerResult.canceled) {
+      // Navigue vers PublishScreen avec l'image sélectionnée
+      navigation.navigate('PublishScreen', { imageUri: pickerResult.assets[0].uri });
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <Text style={styles.headerTitle}>Activité</Text>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={[styles.roundIcon, { backgroundColor: '#000' }]}
-            onPress={() => {}}>
+          <TouchableOpacity
+            style={[styles.roundIcon, { backgroundColor: '#000' }]}
+            onPress={openImagePicker}
+          >
             <FontAwesome name="gift" size={24} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
