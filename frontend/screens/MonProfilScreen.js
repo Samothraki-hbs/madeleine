@@ -17,7 +17,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.50:3000/pins/me', {
+      const response = await fetch('http://10.17.8.189:3000/pins/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();

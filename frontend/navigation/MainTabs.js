@@ -24,7 +24,7 @@ export default function MainTabs() {
         return;
       }
       try {
-        const response = await fetch('http://192.168.0.11:3000/me', {
+        const response = await fetch('http://10.17.8.189/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.status === 401) {
