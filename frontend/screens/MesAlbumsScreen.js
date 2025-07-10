@@ -122,8 +122,9 @@ export default function MesAlbumsScreen() {
             onPress={() => navigation.navigate('Album', { albumId: item.albumId, albumName: item.name })}
           >
             <View style={styles.albumCardLeft}>
-              <Text style={styles.albumPhotoCount}>{item.photoCount ? item.photoCount + ' photos' : '0 photo'}</Text>
+              
               <Text style={styles.albumName}>{item.name}</Text>
+              <Text style={styles.albumPhotoCount}>{item.photoCount ? item.photoCount + ' photos' : '0 photo'}</Text>
             </View>
             <View style={styles.albumCardRight}>
               <Text style={styles.albumLastActivity}>Dernière activité il y a 1 heure</Text>
@@ -132,40 +133,6 @@ export default function MesAlbumsScreen() {
         )}
         ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucun album...</Text> : null}
       />
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Créer un album partagé</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Nom de l'album"
-              value={albumName}
-              onChangeText={setAlbumName}
-            />
-            <Text style={styles.label}>Ajouter des amis :</Text>
-            <ScrollView style={{ maxHeight: 150 }}>
-              {friends.map(friend => (
-                <TouchableOpacity
-                  key={friend.userId}
-                  style={selectedFriends.includes(friend.userId) ? styles.friendSelected : styles.friend}
-                  onPress={() => toggleFriend(friend.userId)}
-                >
-                  <Text style={styles.friendText}>{friend.pseudo}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelText}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.createButton} onPress={createAlbum} disabled={creating}>
-                <Text style={styles.createText}>{creating ? 'Création...' : 'Créer'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -181,7 +148,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 32,
+    paddingTop: 50,
     paddingBottom: 12,
     paddingHorizontal: 20,
     backgroundColor: '#f3f4f6',
@@ -223,19 +190,20 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   albumPhotoCount: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 18,
     color: '#111',
   },
   albumName: {
-    fontSize: 18,
+    fontSize: 22,
+    fontWeight : 'bold',
     color: '#222',
     marginTop: 2,
   },
   albumLastActivity: {
-    fontSize: 15,
+    fontSize: 12,
     color: '#bbb',
     fontWeight: '400',
+    bottom : -15,
   },
   empty: {
     fontSize: 18,

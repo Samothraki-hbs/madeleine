@@ -68,10 +68,10 @@ export default function AccueilScreen() {
         <Text style={styles.headerTitle}>Activité</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity
-            style={[styles.roundIcon, { backgroundColor: '#000' }]}
+            style={[styles.roundIcon, { backgroundColor: '#ff4d2e' }]}
             onPress={() => {}}
           >
-            <FontAwesome name="gift" size={24} color="#fff" />
+            <FontAwesome name="trophy" size={24} color="white" />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 32,
+    paddingTop: 50,
     paddingBottom: 12,
     paddingHorizontal: 20,
     backgroundColor: '#f3f4f6',
@@ -208,11 +208,6 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 40,
-  },
-  notifIcon: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
   },
   carouselTitle: {
     fontSize: 18,
