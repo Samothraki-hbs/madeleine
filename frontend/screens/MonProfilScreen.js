@@ -133,8 +133,8 @@ export default function MonProfilScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
-        <Image style={styles.avatar} />
-        <View style={{ flex: 1, marginLeft: 18 }}>
+        <Image style={styles.avatar} source="/assets/images/notification.png" />
+        <View style={{ flex: 1, marginLeft: -5, marginTop : 30 }}>
           <Text style={styles.headerTitle}>{pseudo}</Text>
         </View>
         <View style={styles.headerActions}>
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     borderRadius: 55,
     borderWidth: 2,
     borderColor: '#111',
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',

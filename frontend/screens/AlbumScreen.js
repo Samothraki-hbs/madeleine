@@ -6,10 +6,12 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import PhotoSorter from './PhotoSorter';
 import { IconSymbol } from '../components/ui/IconSymbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function AlbumScreen({ route }) {
   const { albumId, albumName } = route.params;
+  const navigation = useNavigation();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImages, setSelectedImages] = useState([]); // uris locales
@@ -204,14 +206,19 @@ export default function AlbumScreen({ route }) {
     <View style={styles.container}>
       <Animated.View style={[styles.animatedHeader, { transform: [{ translateY: headerTranslateY }], opacity: headerOpacity }]}> 
         <View style={styles.headerContent}>
-          <View style={styles.albumTitleContainer}>
-            <Text style={styles.albumTitle}>{albumName}</Text>
-          </View>
-          <View style={styles.addPhotoIconContainer}>
-            <TouchableOpacity style={styles.addPhotoIconBox} onPress={pickImages}>
-              <IconSymbol name="paperplane.fill" size={40} color="#888" />
-            </TouchableOpacity>
-          </View>
+          <View style={styles.header}>
+          
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="#111" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{albumName}</Text>
+          <TouchableOpacity style={styles.headerIcon} onPress={pickImages}>
+            <Ionicons name="images" size={28} color="#222" />
+          </TouchableOpacity>
+          
+        </View>
+          
+        
           <Text style={styles.subtitle}>Photos de l'album :</Text>
         </View>
       </Animated.View>
@@ -306,47 +313,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
     padding: 0,
-    paddingTop: 15,
+    paddingTop: 50,
   },
-  animatedHeader: {
-    zIndex: 10,
-    backgroundColor: 'transparent',
-  },
-  headerContent: {
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    paddingBottom: 12,
-    paddingTop: 8,
-    paddingHorizontal: 0,
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-    marginHorizontal: 24,
-    marginTop: 16,
+    padding: 12,
   },
-  albumTitleContainer: {
-    marginTop: 10,
-    marginBottom: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+  backBtn: {
+    padding: 8,
   },
-  albumTitle: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#222',
-    letterSpacing: 1.5,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.10)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
-    borderRadius: 18,
-    backgroundColor: '#f7f7f7',
-    overflow: 'hidden',
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#111',
+    marginLeft: 12,
+  },
+  headerIcon :{
+    marginLeft : 280,
   },
   addPhotoIconContainer: {
     alignItems: 'center',
@@ -585,4 +569,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+  backBtn: {
+    padding: 8,
+  },
+  
 }); 
