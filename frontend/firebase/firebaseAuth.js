@@ -1,32 +1,29 @@
-// firebaseAuth.js
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-import { app } from "./firebaseConfig";
+// madeleine/frontend/firebase/firebaseAuth.js
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 // Inscription
 export const registerWithEmail = async (email, password) => {
-  return await createUserWithEmailAndPassword(auth, email, password);
-};
-
-// Enregistrement du pseudo
-export const savePseudo = async (pseudo) => {
-  const user = auth.currentUser;
-  await setDoc(doc(db, "users", user.uid), {
-    email: user.email,
-    pseudo: pseudo,
-    createdAt: new Date()
-  });
+  return await auth().createUserWithEmailAndPassword(email, password);
 };
 
 // Connexion
 export const loginWithEmail = async (email, password) => {
-  return await signInWithEmailAndPassword(auth, email, password);
+  return await auth().signInWithEmailAndPassword(email, password);
 };
 
 // Déconnexion
 export const logout = async () => {
-  return await signOut(auth);
+  return await auth().signOut();
+};
+
+// Enregistrement du pseudo
+export const savePseudo = async (pseudo) => {
+  const user = auth().currentUser;
+  await firestore().collection('users').doc(user.uid).set({
+    email: user.email,
+    pseudo: pseudo,
+    createdAt: new Date()
+  });
 };

@@ -5,3 +5,5 @@ backend/serviceAccountKey.json
 *.log
 .env
 .DS_Store
+frontend/ios/
+frontend/android/

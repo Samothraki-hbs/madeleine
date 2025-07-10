@@ -19,7 +19,7 @@ export default function RechercheAmi() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.8.189:3000/users?pseudo=' + encodeURIComponent(text), {
+      const response = await fetch('http://192.168.239.12:3000/users?pseudo=' + encodeURIComponent(text), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
