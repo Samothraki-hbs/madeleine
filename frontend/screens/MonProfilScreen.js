@@ -22,7 +22,7 @@ export default function MonProfilScreen({ navigation }) {
   const fetchUser = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/me', {
+      const response = await fetch('http://10.17.9.88:3000/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -38,7 +38,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/pins/me', {
+      const response = await fetch('http://10.17.9.88:3000/pins/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -54,7 +54,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoadingFriends(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/friends', {
+      const response = await fetch('http://10.17.9.88:3000/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -76,7 +76,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoadingSearch(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/users?pseudo=' + encodeURIComponent(text), {
+      const response = await fetch('http://10.17.9.88:3000/users?pseudo=' + encodeURIComponent(text), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -98,7 +98,7 @@ export default function MonProfilScreen({ navigation }) {
     setSearchMessage('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/friend-request', {
+      const response = await fetch('http://10.17.9.88:3000/friend-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

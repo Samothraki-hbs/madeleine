@@ -1,21 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, ActivityIndicator, Modal } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Dimensions,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
-import { FontAwesome } from '@expo/vector-icons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
+
+const CARD_WIDTH = 380 + 10; // card width + marginRight
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function AccueilScreen() {
   const navigation = useNavigation();
+  const flatListRef = useRef(null);
   const [friendPins, setFriendPins] = useState([]);
   const [loadingPins, setLoadingPins] = useState(true);
-  const [selectedPin, setSelectedPin] = useState(null);
+  const [likesState, setLikesState] = useState({});
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const fetchFriendPins = async () => {
     setLoadingPins(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.0.20:3000/pins/friends', {
+      const response = await fetch('http://10.17.9.88:3000/pins/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -26,64 +39,94 @@ export default function AccueilScreen() {
     }
     setLoadingPins(false);
   };
+  
+
+  const toggleLike = (pinId) => {
+    setLikesState((prev) => ({
+      ...prev,
+      [pinId]: !prev[pinId],
+    }));
+  };
+
+  const handleScrollEnd = (event) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const newIndex = Math.round(offsetX / CARD_WIDTH);
+    setCurrentIndex(newIndex);
+    flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
+  };
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       fetchFriendPins();
     }, [])
   );
-
-  // Replace this with your actual data fetching logic
-  const pictures = []; // Empty array means no pictures
-
+  
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.headerBox}>
         <Text style={styles.headerTitle}>Activité</Text>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={[styles.roundIcon, { backgroundColor: '#000' }]}
-            onPress={() => {}}>
+          <TouchableOpacity
+            style={[styles.roundIcon, { backgroundColor: '#000' }]}
+            onPress={() => {}}
+          >
             <FontAwesome name="gift" size={24} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
-            onPress={() => navigation.navigate('Notifications')}>
+          <TouchableOpacity
+            style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
+            onPress={() => navigation.navigate('Notifications')}
+          >
             <Ionicons name="notifications-outline" size={24} color="#222" />
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Carousel */}
       <FlatList
+        ref={flatListRef}
         data={friendPins}
-        keyExtractor={item => item.pinId}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        renderItem={({ item }) => (
-          <View style={styles.activityCard}>
-            <View style={styles.activityHeader}>
-              <View style={styles.avatarCircle}>
-                {/* Placeholder avatar blanc */}
+        keyExtractor={(item) => item.pinId}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2 }}
+        decelerationRate="fast"
+        onMomentumScrollEnd={handleScrollEnd}
+        renderItem={({ item }) => {
+          const liked = likesState[item.pinId] || false;
+          return (
+            <View style={styles.activityCard}>
+              <View style={styles.activityImageBox}>
+                {item.photoUrl && (
+                  <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
+                )}
+                <TouchableOpacity
+                  style={styles.heartIcon}
+                  onPress={() => toggleLike(item.pinId)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <AntDesign
+                    name={liked ? 'heart' : 'hearto'}
+                    size={36}
+                    color={liked ? '#ff4d4d' : '#fff'}
+                  />
+                </TouchableOpacity>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.activityName}>{item.userPseudo || 'Jules'}</Text>
-                <Text style={styles.activitySubtitle}>Offert par François</Text>
-              </View>
-              <Text style={styles.activityTime}>{item.pinnedAt ? 'Il y a 1 heure' : ''}</Text>
             </View>
-            <View style={styles.activityImageBox}>
-              {item.photoUrl ? (
-                <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
-              ) : null}
-            </View>
-            <View style={styles.activityActions}>
-              <Ionicons name="heart-outline" size={24} color="#ddd" style={{ marginRight: 12 }} />
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color="#ddd" />
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={!loadingPins ? <Text style={styles.empty}>Aucune activité</Text> : null}
+          );
+        }}
+        ListEmptyComponent={
+          !loadingPins ? <Text style={styles.empty}>Aucune activité</Text> : null
+        }
       />
+
+      {/* Loader */}
       {loadingPins && <ActivityIndicator style={{ marginTop: 24 }} />}
     </View>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -174,14 +217,14 @@ const styles = StyleSheet.create({
   carouselTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#222',
-    marginTop: 8,
-    marginBottom: 4,
-    marginLeft: 8,
+    color: 'red',
+    marginTop: 0,
+    marginBottom: 0,
+    marginLeft: 0,
   },
   pinCard: {
     width: 320,
-    backgroundColor: '#fff',
+    backgroundColor: 'red',
     borderRadius: 24,
     marginRight: 20,
     padding: 16,
@@ -197,30 +240,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     width: '100%',
     justifyContent: 'space-between',
-  },
-  pinPseudo: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    flex: 1,
-    color: '#222',
-  },
-  pinDate: {
-    fontSize: 12,
-    color: '#888',
-    marginLeft: 8,
-  },
-  pinPhoto: {
-    width: '100%',
-    height: 220,
-    borderRadius: 18,
-    marginBottom: 10,
-    backgroundColor: '#eee',
-  },
-  pinActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    width: '100%',
-    gap: 24,
   },
   empty: {
     fontSize: 16,
@@ -243,22 +262,20 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 6,
   },
-  fullImage: {
-    width: '90%',
-    height: '70%',
-    resizeMode: 'contain',
-    borderRadius: 18,
-    backgroundColor: '#222',
-  },
   activityCard: {
-    backgroundColor: '#fff',
+    width: 380,
+    height: 400,
+    backgroundColor: 'transparent',
+    marginLeft : 6,
     borderRadius: 18,
-    marginBottom: 24,
-    padding: 16,
+    marginBottom: 0,
+    paddingTop: 15,
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
+    marginRight : 10,
+    position : 'relative',
   },
   activityHeader: {
     flexDirection: 'row',
@@ -290,22 +307,32 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   activityImageBox: {
+    paddingTop : 100,
     width: '100%',
-    aspectRatio: 1.5,
-    backgroundColor: '#f3f4f6',
+    aspectRatio :2/3,
+    backgroundColor: 'transparent',
     borderRadius: 12,
-    marginBottom: 12,
     overflow: 'hidden',
   },
   activityImage: {
-    width: '100%',
-    height: '100%',
+    width : "100%",
+    height : '400',
     resizeMode: 'cover',
+    borderRadius : 12,
+    
   },
   activityActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 0,
+  },
+  heartIcon: {
+    position: 'absolute',
+    bottom: 70,
+    right: 5,
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    padding: 6,
   },
 });

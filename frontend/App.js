@@ -37,7 +37,7 @@ export default function App() {
         if (token) {
           const userToken = await AsyncStorage.getItem('token');
           if (userToken) {
-            await fetch('http://192.168.0.20:3000/users/me/fcm-token', {
+            await fetch('http://10.17.9.88:3000/users/me/fcm-token', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
