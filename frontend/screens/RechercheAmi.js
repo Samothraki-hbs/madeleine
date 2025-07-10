@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 
 export default function RechercheAmi() {
   const [search, setSearch] = useState('');
@@ -18,9 +18,15 @@ export default function RechercheAmi() {
     }
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setResults([]);
+        setLoading(false);
+        return;
+      }
+      const idToken = await user.getIdToken();
       const response = await fetch('http://192.168.239.12:3000/users?pseudo=' + encodeURIComponent(text), {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
       if (response.ok) {
@@ -40,12 +46,14 @@ export default function RechercheAmi() {
     setSending(toUserId);
     setMessage('');
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) return;
+      const idToken = await user.getIdToken();
       const response = await fetch('http://192.168.0.50:3000/friend-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({ toUserId }),
       });

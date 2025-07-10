@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "619679592296",
+    "project_id": "madeleine-ad45a",
+    "storage_bucket": "madeleine-ad45a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:619679592296:android:fe068dd9b19362c18d30dd",
+        "android_client_info": {
+          "package_name": "com.anonymous.frontend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "619679592296-vr94432l9du8mbnebqsikgehogs4pl0c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnCaqe-KADcq6UonTFn8RDB81tpL3p1Ns"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "619679592296-vr94432l9du8mbnebqsikgehogs4pl0c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

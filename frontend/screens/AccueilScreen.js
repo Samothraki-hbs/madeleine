@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, ActivityIndicator, Modal } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,9 +15,15 @@ export default function AccueilScreen() {
   const fetchFriendPins = async () => {
     setLoadingPins(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setFriendPins([]);
+        setLoadingPins(false);
+        return;
+      }
+      const idToken = await user.getIdToken();
       const response = await fetch('http://192.168.239.12:3000/pins/friends', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
       if (response.ok) setFriendPins(data.pins);

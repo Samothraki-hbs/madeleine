@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import NouvelAlbumScreen from './NouvelAlbumScreen';
@@ -19,9 +19,15 @@ export default function MesAlbumsScreen() {
   const fetchAlbums = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setAlbums([]);
+        setLoading(false);
+        return;
+      }
+      const idToken = await user.getIdToken();
       const response = await fetch('http://192.168.0.50:3000/albums', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
       if (response.ok) setAlbums(data.albums);
@@ -34,10 +40,15 @@ export default function MesAlbumsScreen() {
 
   const fetchFriends = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setFriends([]);
+        return;
+      }
+      const idToken = await user.getIdToken();
       // On récupère les amis (userA = moi, userB = ami)
       const response = await fetch('http://192.168.0.50:3000/friends', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
       if (response.ok) setFriends(data.friends);
@@ -69,12 +80,18 @@ export default function MesAlbumsScreen() {
     setCreating(true);
     setError('');
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setError('Utilisateur non connecté');
+        setCreating(false);
+        return;
+      }
+      const idToken = await user.getIdToken();
       const response = await fetch('http://192.168.0.50:3000/albums', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({ name: albumName, memberIds: selectedFriends }),
       });

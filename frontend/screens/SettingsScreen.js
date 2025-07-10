@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 
 export default function SettingsScreen({ navigation }) {
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('token');
+      await auth().signOut();
       navigation.reset({
         index: 0,
         routes: [{ name: 'Welcome' }],
       });
     } catch (err) {
-      Alert.alert('Erreur', "Impossible de se déconnecter");
+      Alert.alert('Erreur', 'Impossible de se déconnecter.');
     }
   };
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 
 export default function NotificationScreen() {
   const [requests, setRequests] = useState([]);
@@ -12,9 +12,15 @@ export default function NotificationScreen() {
     setLoading(true);
     setMessage('');
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setRequests([]);
+        setLoading(false);
+        return;
+      }
+      const idToken = await user.getIdToken();
       const response = await fetch('http://192.168.239.12:3000/friend-requests', {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
       if (response.ok) {
@@ -36,12 +42,14 @@ export default function NotificationScreen() {
     setActionLoading(requestId + action);
     setMessage('');
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) return;
+      const idToken = await user.getIdToken();
       const response = await fetch('http://192.168.239.12:3000/friend-request/respond', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({ requestId, action }),
       });

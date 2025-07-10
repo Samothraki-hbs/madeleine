@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import { loginWithEmail } from '../../firebase/firebaseAuth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -14,8 +14,9 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const userCredential = await loginWithEmail(email, password);
-      const token = await userCredential.user.getIdToken();
-      await AsyncStorage.setItem('token', token);
+      // Plus besoin de stocker le token, Firebase natif gère la session
+      // const token = await userCredential.user.getIdToken();
+      // await AsyncStorage.setItem('token', token);
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],

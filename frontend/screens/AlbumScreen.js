@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Modal, Dimensions, Animated, PanResponder } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import PhotoSorter from './PhotoSorter';
 import { IconSymbol } from '../components/ui/IconSymbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
+import auth from '@react-native-firebase/auth';
 
 export default function AlbumScreen({ route }) {
   const { albumId, albumName } = route.params;
@@ -25,9 +25,15 @@ export default function AlbumScreen({ route }) {
   const fetchPhotos = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setPhotos([]);
+        setLoading(false);
+        return;
+      }
+      const idToken = await user.getIdToken();
       const response = await fetch(`http://192.168.239.12:3000/albums/${albumId}/photos`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
       if (response.ok) setPhotos(data.photos);
@@ -40,9 +46,14 @@ export default function AlbumScreen({ route }) {
 
   const fetchPhotosToSort = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setPhotosToSort([]);
+        return;
+      }
+      const idToken = await user.getIdToken();
       const response = await fetch(`http://192.168.239.12:3000/albums/${albumId}/photos-to-sort`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
       if (response.ok) setPhotosToSort(data.photos);
@@ -109,7 +120,13 @@ export default function AlbumScreen({ route }) {
     setError('');
     setUploading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setError('Utilisateur non connecté');
+        setUploading(false);
+        return;
+      }
+      const idToken = await user.getIdToken();
       // Compresser si besoin
       const compressedImages = [];
       for (const asset of selectedImages) {
@@ -126,7 +143,7 @@ export default function AlbumScreen({ route }) {
       const response = await fetch(`http://192.168.239.12:3000/albums/${albumId}/photos`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${idToken}`,
         },
         body: formData,
       });
@@ -162,17 +179,19 @@ export default function AlbumScreen({ route }) {
     if (!photosToSort[currentSortIndex]) return;
     const photo = photosToSort[currentSortIndex];
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) return;
+      const idToken = await user.getIdToken();
       if (status === 'pinned') {
         await fetch(`http://192.168.239.12:3000/photos/${photo.photoId}/pin`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ albumId }),
         });
       } else {
         await fetch(`http://192.168.239.12:3000/photos/${photo.photoId}/status`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ albumId, status }),
         });
       }
@@ -269,17 +288,19 @@ export default function AlbumScreen({ route }) {
                 let status = 'kept';
                 if (direction === 'left') status = 'archived';
                 if (direction === 'right') status = 'kept';
-                const token = await AsyncStorage.getItem('token');
+                const user = auth().currentUser;
+                if (!user) return;
+                const idToken = await user.getIdToken();
                 if (direction === 'top') {
                   await fetch(`http://192.168.239.12:3000/photos/${photo.photoId}/pin`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ albumId }),
                   });
                 } else {
                   await fetch(`http://192.168.239.12:3000/photos/${photo.photoId}/status`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ albumId, status }),
                   });
                 }

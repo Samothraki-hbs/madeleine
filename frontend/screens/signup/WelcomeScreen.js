@@ -2,19 +2,20 @@
 
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 
 export default function WelcomeScreen({ navigation }) {
   useEffect(() => {
     const checkToken = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
+      const user = auth().currentUser;
+      if (user) {
         try {
+          const idToken = await user.getIdToken();
           const response = await fetch('http://192.168.239.12:3000/me', {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${idToken}` },
           });
           if (response.status === 401) {
-            await AsyncStorage.removeItem('token');
+            await auth().signOut();
             // Reste sur WelcomeScreen
             return;
           }

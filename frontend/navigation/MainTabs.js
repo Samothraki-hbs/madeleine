@@ -8,7 +8,7 @@ import MonProfilScreen from '../screens/MonProfilScreen';
 import MesAlbumsScreen from '../screens/MesAlbumsScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import AlbumScreen from '../screens/AlbumScreen';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
@@ -17,25 +17,26 @@ const Tab = createBottomTabNavigator();
 export default function MainTabs() {
   const navigation = useNavigation();
   useEffect(() => {
-    const checkToken = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
+    const unsubscribe = auth().onAuthStateChanged(async user => {
+      if (!user) {
+        // Utilisateur non connecté, redirige vers Welcome
         navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
         return;
       }
       try {
+        const idToken = await user.getIdToken();
         const response = await fetch('http://10.17.8.189/me', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${idToken}` },
         });
         if (response.status === 401) {
-          await AsyncStorage.removeItem('token');
+          await auth().signOut();
           navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
         }
       } catch (err) {
         // Erreur réseau : tu peux choisir d'afficher un message ou de rester
       }
-    };
-    checkToken();
+    });
+    return unsubscribe;
   }, []);
   return (
     <Tab.Navigator

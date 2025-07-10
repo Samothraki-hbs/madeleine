@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 export default function SelectionAmisScreen() {
@@ -18,9 +18,15 @@ export default function SelectionAmisScreen() {
       setLoading(true);
       setError('');
       try {
-        const token = await AsyncStorage.getItem('token');
+        const user = auth().currentUser;
+        if (!user) {
+          setFriends([]);
+          setLoading(false);
+          return;
+        }
+        const idToken = await user.getIdToken();
         const response = await fetch('http://192.168.0.20:3000/friends', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${idToken}` },
         });
         const data = await response.json();
         if (response.ok) setFriends(data.friends);
@@ -46,12 +52,14 @@ export default function SelectionAmisScreen() {
     }
     setError('');
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) return;
+      const idToken = await user.getIdToken();
       const response = await fetch('http://192.168.0.20:3000/albums', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({ name: albumName, memberIds: selected }),
       });
