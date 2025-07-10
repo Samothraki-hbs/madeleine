@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+//On limite le nb de photos par album à 5
 const upload = multer({ limits: { files: 5 } });
 const { bucket, admin } = require('../db');
 
@@ -551,6 +552,26 @@ router.post('/users/me/fcm-token', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+// Obtenir le pseudo à partir de l'Id 
+router.get('/users/:userId/pseudo', authenticateToken, async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'Utilisateur introuvable' });
+    }
+
+    const { pseudo } = userDoc.data();
+    res.json({ pseudo });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 
 module.exports = router;
 
