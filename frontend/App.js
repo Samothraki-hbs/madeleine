@@ -1,79 +1,40 @@
 // le main, ce qui lance tout
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import SignupNavigator from './navigation/SignupNavigator';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
-import { Notifications } from './firebase/firebaseConfig';
-import { Platform } from 'react-native';
-import AppNavigator from './navigation/AppNavigator';
 import auth from '@react-native-firebase/auth';
-
-function registerForPushNotificationsAsync() {
-  return new Promise(async (resolve, reject) => {
-    let token;
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') {
-      return resolve(null);
-    }
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    resolve(token);
-  });
-}
+import firestore from '@react-native-firebase/firestore';
+import AppNavigator from './navigation/AppNavigator';
+import SignupNavigator from './navigation/SignupNavigator';
+import { StyleSheet } from 'react-native';
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [fcmToken, setFcmToken] = useState(null);
 
   useEffect(() => {
-    (async () => {
-      const token = await registerForPushNotificationsAsync();
-      if (token) {
-        setFcmToken(token);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async user => {
+    const unsubscribe = auth().onAuthStateChanged(async (user) => {
+      setUser(user);
       if (user) {
-        setIsAuthenticated(true);
-        setLoading(false);
-        // Récupérer le token d'auth Firebase
-        const idToken = await user.getIdToken();
-        // Si tu veux envoyer le fcmToken à ton backend, fais-le ici
-        if (idToken && fcmToken) {
-          await fetch('http://192.168.0.20:3000/users/me/fcm-token', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${idToken}`,
-            },
-            body: JSON.stringify({ fcmToken }),
-          });
-        }
+        // Récupère le profil Firestore
+        const doc = await firestore().collection('users').doc(user.uid).get();
+        setProfile(doc.exists ? doc.data() : null);
       } else {
-        setIsAuthenticated(false);
-        setLoading(false);
+        setProfile(null);
       }
+      setLoading(false);
     });
     return unsubscribe;
-  }, [fcmToken]);
+  }, []);
 
   if (loading) return null; // ou un splash screen
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        {isAuthenticated ? <AppNavigator /> : <SignupNavigator />}
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <NavigationContainer>
+      {user && profile && profile.pseudo
+        ? <AppNavigator />
+        : <SignupNavigator />}
+    </NavigationContainer>
   );
 }
 

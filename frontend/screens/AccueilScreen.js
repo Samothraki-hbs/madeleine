@@ -12,9 +12,7 @@ import {
 
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth'
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
-import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 const CARD_WIDTH = 380 + 10;
 const { width : SCREEN_WIDTH } = Dimensions.get('window');

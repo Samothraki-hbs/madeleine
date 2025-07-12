@@ -10,26 +10,37 @@ const { bucket, admin } = require('../db');
 
 // POST /signup
 router.post('/signup', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const idToken = authHeader && authHeader.split(' ')[1];
   const { pseudo } = req.body;
 
-  if (!pseudo) {
-    return res.status(400).json({ error: 'Pseudo requis' });
+  if (!idToken || !pseudo) {
+    return res.status(400).json({ error: 'Token ou pseudo manquant' });
   }
 
   try {
-    // Vérifier si le pseudo existe déjà
+    // Vérifier le token Firebase
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+    const email = decodedToken.email || null;
+
+    // Vérifier si l'utilisateur existe déjà
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (userDoc.exists) {
+      return res.status(409).json({ error: 'Utilisateur déjà existant' });
+    }
+
+    // Vérifier si le pseudo est déjà utilisé par un autre utilisateur
     const usersRef = db.collection('users');
     const snapshot = await usersRef.where('pseudo', '==', pseudo).get();
     if (!snapshot.empty) {
       return res.status(409).json({ error: 'Pseudo déjà utilisé' });
     }
 
-    // Ajouter le nouvel utilisateur
-    const userRef = await usersRef.add({ pseudo });
-    const userId = userRef.id;
-    // Générer un token JWT
-    const token = jwt.sign({ userId, pseudo }, 'votre_secret_jwt', { expiresIn: '7d' });
-    res.status(201).json({ message: 'Inscription réussie', token });
+    // Ajouter le nouvel utilisateur avec l’UID Firebase
+    await db.collection('users').doc(uid).set({ pseudo, email });
+
+    res.status(201).json({ message: 'Inscription réussie' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
