@@ -2,14 +2,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Modal, Dimensions, Animated, PanResponder } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import PhotoSorter from './PhotoSorter';
-import { IconSymbol } from '../components/ui/IconSymbol';
+import { useLocalSearchParams } from 'expo-router';
+import PhotoSorter from './photo-sorter';
+import { IconSymbol } from '../../components/ui/IconSymbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 
-export default function AlbumScreen({ route }) {
-  const { albumId, albumName } = route.params;
+export default function AlbumScreen() {
+  const { albumId, albumName } = useLocalSearchParams();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImages, setSelectedImages] = useState([]); // uris locales
@@ -236,7 +237,7 @@ export default function AlbumScreen({ route }) {
       </Animated.View>
       {photosToSort.length > 0 && !sorting && (
         <TouchableOpacity style={styles.envelopeBtn} onPress={() => { setSorting(true); setCurrentSortIndex(0); }}>
-          <Image source={require('../assets/images/envelope.png')} style={styles.envelopeImg} />
+          <Image source={require('../../assets/images/envelope.png')} style={styles.envelopeImg} />
           <Text style={styles.envelopeText}>Nouvelles photos à trier !</Text>
         </TouchableOpacity>
       )}

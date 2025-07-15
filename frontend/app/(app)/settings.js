@@ -1,15 +1,13 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import { router } from 'expo-router';
 
-export default function SettingsScreen({ navigation }) {
+export default function SettingsScreen() {
   const handleLogout = async () => {
     try {
       await auth().signOut();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Welcome' }],
-      });
+      router.replace('/(auth)/welcome');
     } catch (err) {
       Alert.alert('Erreur', 'Impossible de se déconnecter.');
     }

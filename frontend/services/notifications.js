@@ -51,7 +51,7 @@ export class NotificationService {
     return token;
   }
 
-  static async sendTokenToServer(token: string) {
+  static async sendTokenToServer(token) {
     try {
       const user = auth().currentUser;
       if (!user) return;
@@ -74,7 +74,7 @@ export class NotificationService {
     }
   }
 
-  static async handleNotificationReceived(notification: Notifications.Notification) {
+  static async handleNotificationReceived(notification) {
     console.log('Notification reçue:', notification);
     
     // Gérer les deep links selon le type de notification
@@ -89,7 +89,7 @@ export class NotificationService {
     }
   }
 
-  static async handleNotificationResponse(response: Notifications.NotificationResponse) {
+  static async handleNotificationResponse(response) {
     const data = response.notification.request.content.data;
     
     // Gérer les actions sur les notifications

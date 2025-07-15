@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import { loginWithEmail } from '../../firebase/firebaseAuth';
+import { router } from 'expo-router';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -33,10 +34,7 @@ const LoginScreen = ({ navigation }) => {
         throw new Error(data.error || 'Erreur lors de l\'inscription backend');
       }
 
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' }],
-      });
+      router.replace('/(app)/(tabs)/activite');
     } catch (err) {
       setError(err.message);
     } finally {

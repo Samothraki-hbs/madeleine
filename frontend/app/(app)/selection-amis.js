@@ -2,12 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import auth from '@react-native-firebase/auth';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { router, useLocalSearchParams } from 'expo-router';
 
 export default function SelectionAmisScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const albumName = route.params?.albumName || '';
+  const { albumName } = useLocalSearchParams();
   const [friends, setFriends] = useState([]);
   const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +62,7 @@ export default function SelectionAmisScreen() {
         body: JSON.stringify({ name: albumName, memberIds: selected }),
       });
       if (response.ok) {
-        navigation.navigate('MesAlbums');
+        router.push('/(app)/(tabs)/mes-albums');
       } else {
         const data = await response.json();
         setError(data.error || 'Erreur lors de la création de l\'album');
@@ -91,7 +89,7 @@ export default function SelectionAmisScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={28} color="#111" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Nom de l'album</Text>

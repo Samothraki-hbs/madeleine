@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import { registerWithEmail } from '../../firebase/firebaseAuth';
+import { router } from 'expo-router';
 
-const MailScreen = ({ navigation }) => {
+const MailScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,7 +18,7 @@ const MailScreen = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      navigation.navigate('PseudoScreen'); // passe à l'étape du pseudo
+      router.push('/(auth)/pseudo'); // passe à l'étape du pseudo
       await registerWithEmail(email, password);
       console.log("Navigation vers PseudoScreen fonctionne bien"); // ne crée que l'utilisateur Auth
       console.log("Navigation vers PseudoScreen fonctionne bien");

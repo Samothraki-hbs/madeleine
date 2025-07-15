@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, ActivityIndicator, Modal, TextInput, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import auth from '@react-native-firebase/auth';
-import { app } from "../firebase/firebaseConfig"; // adapte le chemin si besoin
+import { app } from "../../../firebase/firebaseConfig";
+import { router } from 'expo-router';
 
-export default function MonProfilScreen({ navigation }) {
+export default function MonProfilScreen() {
   const [pseudo, setPseudo] = useState('');
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,10 +99,10 @@ export default function MonProfilScreen({ navigation }) {
           <TouchableOpacity style={styles.headerActionBtn}>
             <Ionicons name="stats-chart" size={22} color="#111" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionBtn} onPress={() => navigation.navigate('Settings')}>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => router.push('/(app)/settings')}>
             <Ionicons name="settings-outline" size={22} color="#111" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionBtn} onPress={() => navigation.navigate('RechercheAmi')}>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => router.push('/(app)/recherche-ami')}>
             <Ionicons name="people-outline" size={22} color="#111" />
           </TouchableOpacity>
         </View>

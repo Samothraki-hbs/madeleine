@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 export default function NouvelAlbumScreen() {
-  const navigation = useNavigation();
   const [albumName, setAlbumName] = useState('');
   const [error, setError] = useState('');
 
@@ -14,14 +13,17 @@ export default function NouvelAlbumScreen() {
       return;
     }
     setError('');
-    navigation.navigate('SelectionAmis', { albumName });
+    router.push({
+      pathname: '/(app)/selection-amis',
+      params: { albumName }
+    });
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={28} color="#111" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Nouvel album</Text>

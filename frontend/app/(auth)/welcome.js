@@ -3,8 +3,9 @@
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import { router } from 'expo-router';
 
-export default function WelcomeScreen({ navigation }) {
+export default function WelcomeScreen() {
   useEffect(() => {
     const checkToken = async () => {
       const user = auth().currentUser;
@@ -20,10 +21,7 @@ export default function WelcomeScreen({ navigation }) {
             return;
           }
           if (response.ok) {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'MainTabs' }],
-            });
+            router.replace('/(app)/(tabs)/activite');
           }
         } catch (err) {
           // Erreur réseau, tu peux choisir de rester sur WelcomeScreen ou afficher un message
@@ -43,13 +41,13 @@ export default function WelcomeScreen({ navigation }) {
       </View>
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('MailScreen')}
+        onPress={() => router.push('/(auth)/mail')}
       >
         <Text style={styles.buttonText}>Continuer</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, { marginTop: 16 }]}
-        onPress={() => navigation.navigate('LoginScreen')}
+        onPress={() => router.push('/(auth)/login')}
       >
         <Text style={styles.buttonText}>Connexion</Text>
       </TouchableOpacity>

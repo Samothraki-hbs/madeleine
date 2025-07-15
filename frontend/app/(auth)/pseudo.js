@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { savePseudo } from '../../firebase/firebaseAuth';
 import auth from '@react-native-firebase/auth'; // ou import { auth } from 'firebase' selon ton setup
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
-export default function PseudoScreen({ navigation }) {
+export default function PseudoScreen() {
   const [pseudo, setPseudo] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,6 +42,9 @@ export default function PseudoScreen({ navigation }) {
         const data = await response.json();
         throw new Error(data.error || 'Erreur lors de l\'inscription backend');
       }
+
+      // Redirection vers l'app principale après inscription réussie
+      router.replace('/(app)/(tabs)/activite');
 
     } catch (err) {
       setError(err.message);

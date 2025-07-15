@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import NouvelAlbumScreen from './NouvelAlbumScreen';
+
 
 export default function MesAlbumsScreen() {
   const [albums, setAlbums] = useState([]);
@@ -14,7 +15,7 @@ export default function MesAlbumsScreen() {
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
-  const navigation = useNavigation();
+  // const navigation = useNavigation(); // Supprimer cette ligne, on utilise router directement
 
   const fetchAlbums = async () => {
     setLoading(true);
@@ -123,7 +124,7 @@ export default function MesAlbumsScreen() {
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <Text style={styles.headerTitle}>Mes albums</Text>
-        <TouchableOpacity style={styles.headerIcon} onPress={() => navigation.navigate('NouvelAlbum')}>
+        <TouchableOpacity style={styles.headerIcon} onPress={() => router.push('/(app)/nouvel-album')}>
           <Ionicons name="folder-open-outline" size={28} color="#222" />
           <Ionicons name="add" size={16} color="#222" style={{ position: 'absolute', right: 2, bottom: 2, backgroundColor: '#fff', borderRadius: 8 }} />
         </TouchableOpacity>
@@ -136,7 +137,10 @@ export default function MesAlbumsScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.albumCard}
-            onPress={() => navigation.navigate('Album', { albumId: item.albumId, albumName: item.name })}
+            onPress={() => router.push({
+              pathname: '/(app)/album',
+              params: { albumId: item.albumId, albumName: item.name }
+            })}
           >
             <View style={styles.albumCardLeft}>
               

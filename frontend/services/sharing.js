@@ -3,7 +3,7 @@ import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
 export class SharingService {
-  static async shareAlbum(albumId: string, albumName: string) {
+  static async shareAlbum(albumId, albumName) {
     const shareUrl = `madeleine://album/${albumId}`;
     const webUrl = `https://votre-domaine.com/album/${albumId}`;
     
@@ -25,7 +25,7 @@ export class SharingService {
     }
   }
 
-  static async sharePhoto(photoId: string, photoUrl: string, description?: string) {
+  static async sharePhoto(photoId, photoUrl, description) {
     const shareUrl = `madeleine://photo/${photoId}`;
     const webUrl = `https://votre-domaine.com/photo/${photoId}`;
     
@@ -48,7 +48,7 @@ export class SharingService {
     }
   }
 
-  static async shareProfile(userId: string, pseudo: string) {
+  static async shareProfile(userId, pseudo) {
     const shareUrl = `madeleine://profile/${userId}`;
     const webUrl = `https://votre-domaine.com/profile/${userId}`;
     
@@ -69,11 +69,11 @@ export class SharingService {
     }
   }
 
-  static generateDeepLink(type: 'album' | 'photo' | 'profile', id: string) {
+  static generateDeepLink(type, id) {
     return `madeleine://${type}/${id}`;
   }
 
-  static generateWebLink(type: 'album' | 'photo' | 'profile', id: string) {
+  static generateWebLink(type, id) {
     return `https://votre-domaine.com/${type}/${id}`;
   }
 } 

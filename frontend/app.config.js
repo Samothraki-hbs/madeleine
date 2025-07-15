@@ -25,7 +25,8 @@ export default ({ config }) => ({
       },
       edgeToEdgeEnabled: true,
       package: "com.anonymous.frontend",
-      googleServicesFile: "./google-services.json"
+      googleServicesFile: "./google-services.json",
+      jsEngine: "hermes",
     },
     web: {
       ...config.expo?.web,

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { View, Image, TextInput, Button, StyleSheet } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
 
-export default function PublishScreen({ route, navigation }) {
-  const { imageUri } = route.params;
+export default function PublishScreen() {
+  const { imageUri } = useLocalSearchParams();
   const [description, setDescription] = useState('');
 
   const handlePublish = () => {
     // Ici, tu peux uploader l'image et la description à ton backend ou à Firebase Storage
     // Puis naviguer ou afficher un message de succès
     alert('Photo publiée !');
-    navigation.goBack();
+    router.back();
   };
 
   return (
