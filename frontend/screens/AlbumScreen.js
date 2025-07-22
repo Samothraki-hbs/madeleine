@@ -8,6 +8,7 @@ import { IconSymbol } from '../components/ui/IconSymbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function AlbumScreen({ route }) {
   const { albumId, albumName } = route.params;
@@ -28,7 +29,7 @@ export default function AlbumScreen({ route }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`http://10.17.9.88:3000/albums/${albumId}/photos`, {
+      const response = await fetch(`http://192.168.1.40:3000/albums/${albumId}/photos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -43,7 +44,7 @@ export default function AlbumScreen({ route }) {
   const fetchPhotosToSort = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`http://10.17.9.88:3000/albums/${albumId}/photos-to-sort`, {
+      const response = await fetch(`http://192.168.1.40:3000/albums/${albumId}/photos-to-sort`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -70,12 +71,14 @@ export default function AlbumScreen({ route }) {
       quality: 1,
     });
     if (!result.canceled) {
-      if (result.assets.length > 5) {
-        setError('Vous ne pouvez sélectionner que 5 photos maximum.');
-        setSelectedImages(result.assets.slice(0, 5));
-      } else {
-        setSelectedImages(result.assets);
-      }
+      navigation.navigate('PreviewSelectedPhotos', {
+        images: result.assets,
+        albumId, // <-- Ajout explicite de l'albumId
+        onUploadSuccess: () => {
+          setSelectedImages([]);
+          fetchPhotos();
+        }
+      });
     }
   };
 
@@ -125,7 +128,7 @@ export default function AlbumScreen({ route }) {
           type: 'image/jpeg',
         });
       });
-      const response = await fetch(`http://10.17.9.88:3000/albums/${albumId}/photos`, {
+      const response = await fetch(`http://192.168.1.40:3000/albums/${albumId}/photos`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -166,13 +169,13 @@ export default function AlbumScreen({ route }) {
     try {
       const token = await AsyncStorage.getItem('token');
       if (status === 'pinned') {
-        await fetch(`http://10.17.9.88:3000/photos/${photo.photoId}/pin`, {
+        await fetch(`http://192.168.1.40:3000/photos/${photo.photoId}/pin`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ albumId }),
         });
       } else {
-        await fetch(`http://10.17.9.88:3000/photos/${photo.photoId}/status`, {
+        await fetch(`http://192.168.1.40:3000/photos/${photo.photoId}/status`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ albumId, status }),
@@ -224,7 +227,7 @@ export default function AlbumScreen({ route }) {
       </Animated.View>
       {photosToSort.length > 0 && !sorting && (
         <TouchableOpacity style={styles.envelopeBtn} onPress={() => { setSorting(true); setCurrentSortIndex(0); }}>
-          <Image source={require('../assets/images/envelope.png')} style={styles.envelopeImg} />
+          <Image source={require('../assets/images/Sujet.png')} style={styles.envelopeImg} />
           <Text style={styles.envelopeText}>Nouvelles photos à trier !</Text>
         </TouchableOpacity>
       )}
@@ -249,24 +252,33 @@ export default function AlbumScreen({ route }) {
       )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator style={{ marginTop: 16 }} /> : null}
-      <Animated.FlatList
-        data={photos}
-        keyExtractor={item => item.photoId}
-        numColumns={2}
-        renderItem={({ item }) => (
-          <View style={styles.photoCell}>
-            <Image source={{ uri: item.url }} style={styles.photo} />
-          </View>
-        )}
-        ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune photo</Text> : null}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        style={{ flex: 1 }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
-      />
+      {/* Liste des photos */}
+      {(!loading && (!photos || photos.length === 0)) ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -15 }] }}>
+          <Text style={{ fontSize: 18, color: '#888', textAlign: 'center', paddingHorizontal: 32 }}>
+            Personne n’a encore déposé de photo… Et si tu étais le premier ?
+          </Text>
+        </View>
+      ) : (
+        <Animated.FlatList
+          data={photos}
+          keyExtractor={item => item.photoId}
+          numColumns={2}
+          renderItem={({ item }) => (
+            <View style={styles.photoCell}>
+              <Image source={{ uri: item.url }} style={styles.photo} />
+            </View>
+          )}
+          ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune photo</Text> : null}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          style={{ flex: 1 }}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+        />
+      )}
       {sorting && photosToSort.length > 0 && (
         <Modal visible={sorting} transparent animationType="fade">
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,1)' }}>
@@ -278,13 +290,13 @@ export default function AlbumScreen({ route }) {
                 if (direction === 'right') status = 'kept';
                 const token = await AsyncStorage.getItem('token');
                 if (direction === 'top') {
-                  await fetch(`http://10.17.9.88:3000/photos/${photo.photoId}/pin`, {
+                  await fetch(`http://192.168.1.40:3000/photos/${photo.photoId}/pin`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ albumId }),
                   });
                 } else {
-                  await fetch(`http://10.17.9.88:3000/photos/${photo.photoId}/status`, {
+                  await fetch(`http://192.168.1.40:3000/photos/${photo.photoId}/status`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ albumId, status }),
@@ -304,6 +316,16 @@ export default function AlbumScreen({ route }) {
           </View>
         </Modal>
       )}
+      {/* Bouton flottant pour ajouter des photos */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={pickImages}
+        activeOpacity={0.8}
+      >
+        <View style={styles.fabIconBox}>
+          <MaterialCommunityIcons name="plus-box" size={48} color="#111" />
+        </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -572,5 +594,21 @@ const styles = StyleSheet.create({
   backBtn: {
     padding: 8,
   },
-  
+  fab: {
+    position: 'absolute',
+    bottom: 32,
+    right: 28,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  fabIconBox: {
+    backgroundColor: '#fff',
+    borderRadius: 32,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 }); 

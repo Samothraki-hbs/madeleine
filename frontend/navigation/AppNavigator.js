@@ -7,12 +7,22 @@ import NouvelAlbumScreen from '../screens/NouvelAlbumScreen';
 import SelectionAmisScreen from '../screens/SelectionAmisScreen';
 import MesAlbumsScreen from '../screens/MesAlbumsScreen';
 import AlbumScreen from '../screens/AlbumScreen';
+import SettingsScreen from '../screens/SettingsScreen'
+import WelcomeScreen from '../screens/signup/WelcomeScreen'
+import PseudoScreen from '../screens/signup/PseudoScreen'
+import PreviewSelectedPhotosScreen from '../screens/PreviewSelectedPhotosScreen';
+import AddFriendsScreen from '../screens/signup/AddFriendsScreen';
+import ChooseProfilePhotoScreen from '../screens/signup/ChooseProfilePhotoScreen';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Pseudo" component={PseudoScreen} />
+      <Stack.Screen name="ChooseProfilePhoto" component={ChooseProfilePhotoScreen} />
+      <Stack.Screen name="AddFriends" component={AddFriendsScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="RechercheAmi" component={RechercheAmi} />
       <Stack.Screen name="Notifications" component={NotificationScreen} />
@@ -20,6 +30,8 @@ export default function AppNavigator() {
       <Stack.Screen name="SelectionAmis" component={SelectionAmisScreen} />
       <Stack.Screen name="Mes Albums" component={MesAlbumsScreen} />
       <Stack.Screen name="Album" component={AlbumScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="PreviewSelectedPhotos" component={PreviewSelectedPhotosScreen} />
     </Stack.Navigator>
   );
 } 

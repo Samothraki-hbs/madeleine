@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +20,7 @@ export default function MesAlbumsScreen() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/albums', {
+      const response = await fetch('http://192.168.1.40:3000/albums', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -36,7 +36,7 @@ export default function MesAlbumsScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       // On récupère les amis (userA = moi, userB = ami)
-      const response = await fetch('http://10.17.9.88:3000/friends', {
+      const response = await fetch('http://192.168.1.40:3000/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -70,7 +70,7 @@ export default function MesAlbumsScreen() {
     setError('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/albums', {
+      const response = await fetch('http://192.168.1.40:3000/albums', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,6 +102,25 @@ export default function MesAlbumsScreen() {
     );
   };
 
+  // Suppression d'un album (retrait de l'utilisateur)
+  const handleDeleteAlbum = async (albumId) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      // Remplace l'URL par celle de ton backend si besoin
+      const response = await fetch(`http://192.168.1.40:3000/albums/${albumId}/leave`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setAlbums(prev => prev.filter(a => a.albumId !== albumId));
+      } else {
+        Alert.alert('Erreur', "Impossible de quitter l'album.");
+      }
+    } catch (err) {
+      Alert.alert('Erreur', 'Erreur réseau.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
@@ -112,27 +131,48 @@ export default function MesAlbumsScreen() {
         </TouchableOpacity>
       </View>
       {loading ? <ActivityIndicator style={{ marginTop: 32 }} /> : null}
-      <FlatList
-        data={albums}
-        keyExtractor={item => item.albumId}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.albumCard}
-            onPress={() => navigation.navigate('Album', { albumId: item.albumId, albumName: item.name })}
-          >
-            <View style={styles.albumCardLeft}>
-              
-              <Text style={styles.albumName}>{item.name}</Text>
-              <Text style={styles.albumPhotoCount}>{item.photoCount ? item.photoCount + ' photos' : '0 photo'}</Text>
-            </View>
-            <View style={styles.albumCardRight}>
-              <Text style={styles.albumLastActivity}>Dernière activité il y a 1 heure</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucun album...</Text> : null}
-      />
+      {/* Liste des albums */}
+      {(!loading && (!albums || albums.length === 0)) ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -15 }] }}>
+          <Text style={{ fontSize: 18, color: '#888', textAlign: 'center', paddingHorizontal: 32 }}>
+            Aucun lieu de partage encore...{"\n"}Crée une galerie pour faire éclore les premiers souvenirs.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={albums}
+          keyExtractor={item => item.albumId}
+          contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.albumCard}
+              onPress={() => navigation.navigate('Album', { albumId: item.albumId, albumName: item.name })}
+              onLongPress={() => {
+                Alert.alert(
+                  'Supprimer cet album ?',
+                  "Tu ne pourras plus accéder à cet album. Continuer ?",
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    { text: 'Supprimer', style: 'destructive', onPress: () => handleDeleteAlbum(item.albumId) }
+                  ]
+                );
+              }}
+            >
+              <View style={styles.albumCardLeft}>
+                
+                <Text style={styles.albumName}>{item.name}</Text>
+                <Text style={styles.albumPhotoCount}>
+                  {item.keptCount ? item.keptCount + ' photo' + (item.keptCount > 1 ? 's' : '') : '0 photo'}
+                </Text>
+              </View>
+              <View style={styles.albumCardRight}>
+                <Text style={styles.albumLastActivity}>Dernière activité il y a 1 heure</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucun album...</Text> : null}
+        />
+      )}
     </View>
   );
 }

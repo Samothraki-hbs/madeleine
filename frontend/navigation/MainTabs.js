@@ -6,8 +6,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AccueilScreen from '../screens/AccueilScreen';
 import MonProfilScreen from '../screens/MonProfilScreen';
 import MesAlbumsScreen from '../screens/MesAlbumsScreen';
-import NotificationScreen from '../screens/NotificationScreen';
-import AlbumScreen from '../screens/AlbumScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -24,7 +22,7 @@ export default function MainTabs() {
         return;
       }
       try {
-        const response = await fetch('http://10.17.9.88:3000/me', {
+        const response = await fetch('http://192.168.1.40:3000/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.status === 401) {

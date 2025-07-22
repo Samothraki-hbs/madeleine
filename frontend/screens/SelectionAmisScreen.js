@@ -19,7 +19,7 @@ export default function SelectionAmisScreen() {
       setError('');
       try {
         const token = await AsyncStorage.getItem('token');
-        const response = await fetch('http://10.17.9.88:3000/friends', {
+        const response = await fetch('http://192.168.1.40:3000/friends', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -40,6 +40,10 @@ export default function SelectionAmisScreen() {
   };
 
   const handleNext = async () => {
+    if (!albumName) {
+      setError("Le nom de l'album est requis");
+      return;
+    }
     if (selected.length === 0) {
       setError('Sélectionne au moins un ami');
       return;
@@ -47,7 +51,7 @@ export default function SelectionAmisScreen() {
     setError('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/albums', {
+      const response = await fetch('http://192.168.1.40:3000/albums', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,10 +59,10 @@ export default function SelectionAmisScreen() {
         },
         body: JSON.stringify({ name: albumName, memberIds: selected }),
       });
-      if (response.ok) {
-        navigation.navigate('MesAlbums');
+      const data = await response.json();
+      if (response.ok && data.albumId) {
+        navigation.navigate('Album', { albumId: data.albumId, albumName });
       } else {
-        const data = await response.json();
         setError(data.error || 'Erreur lors de la création de l\'album');
       }
     } catch (err) {

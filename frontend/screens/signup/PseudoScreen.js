@@ -11,7 +11,7 @@ export default function PseudoScreen({ navigation }) {
       return;
     }
     try {
-      const response = await fetch('http://10.17.9.88:3000/signup', {
+      const response = await fetch('http://192.168.1.40:3000/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pseudo }),
@@ -21,7 +21,7 @@ export default function PseudoScreen({ navigation }) {
         await AsyncStorage.setItem('token', data.token);
         navigation.reset({
           index: 0,
-          routes: [{ name: 'MainTabs' }],
+          routes: [{ name: 'ChooseProfilePhoto' }],
         });
       } else {
         alert(data.error || 'Erreur lors de l\'inscription');

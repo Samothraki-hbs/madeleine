@@ -28,7 +28,7 @@ export default function AccueilScreen() {
     setLoadingPins(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/pins/friends', {
+      const response = await fetch('http://192.168.1.40:3000/pins/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -51,9 +51,17 @@ export default function AccueilScreen() {
   const handleScrollEnd = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const newIndex = Math.round(offsetX / CARD_WIDTH);
-    setCurrentIndex(newIndex);
-    flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
+  
+    // Utilise friendPins à la place de flatListData
+    if (friendPins && friendPins.length > 0) {
+      const clampedIndex = Math.max(0, Math.min(newIndex, friendPins.length - 1));
+      setCurrentIndex(clampedIndex);
+      flatListRef.current?.scrollToIndex({ index: clampedIndex, animated: true });
+    } else {
+      console.warn("Impossible de scroller : FlatList vide ou non initialisée.");
+    }
   };
+  
 
   useFocusEffect(
     useCallback(() => {
@@ -83,42 +91,47 @@ export default function AccueilScreen() {
       </View>
 
       {/* Carousel */}
-      <FlatList
-        ref={flatListRef}
-        data={friendPins}
-        keyExtractor={(item) => item.pinId}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2 }}
-        decelerationRate="fast"
-        onMomentumScrollEnd={handleScrollEnd}
-        renderItem={({ item }) => {
-          const liked = likesState[item.pinId] || false;
-          return (
-            <View style={styles.activityCard}>
-              <View style={styles.activityImageBox}>
-                {item.photoUrl && (
-                  <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
-                )}
-                <TouchableOpacity
-                  style={styles.heartIcon}
-                  onPress={() => toggleLike(item.pinId)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <AntDesign
-                    name={liked ? 'heart' : 'hearto'}
-                    size={36}
-                    color={liked ? '#ff4d4d' : '#fff'}
-                  />
-                </TouchableOpacity>
+      {(!loadingPins && (!friendPins || friendPins.length === 0)) ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -15 }] }}>
+          <Text style={{ fontSize: 20, color: '#888', textAlign: 'center', paddingHorizontal: 32 }}>
+            Aucune madeleine à savourer pour l’instant…{"\n"}Mais qui sait ? Peut-être qu’un ami pense à toi en ce moment.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={friendPins}
+          keyExtractor={(item) => item.pinId}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2 }}
+          decelerationRate="fast"
+          onMomentumScrollEnd={handleScrollEnd}
+          renderItem={({ item }) => {
+            const liked = likesState[item.pinId] || false;
+            return (
+              <View style={styles.activityCard}>
+                <View style={styles.activityImageBox}>
+                  {item.photoUrl && (
+                    <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
+                  )}
+                  <TouchableOpacity
+                    style={styles.heartIcon}
+                    onPress={() => toggleLike(item.pinId)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <AntDesign
+                      name={liked ? 'heart' : 'hearto'}
+                      size={36}
+                      color={liked ? '#ff4d4d' : '#fff'}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          );
-        }}
-        ListEmptyComponent={
-          !loadingPins ? <Text style={styles.empty}>Aucune activité</Text> : null
-        }
-      />
+            );
+          }}
+        />
+      )}
 
       {/* Loader */}
       {loadingPins && <ActivityIndicator style={{ marginTop: 24 }} />}

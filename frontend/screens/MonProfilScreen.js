@@ -22,7 +22,7 @@ export default function MonProfilScreen({ navigation }) {
   const fetchUser = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/me', {
+      const response = await fetch('http://192.168.1.40:3000/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -38,7 +38,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/pins/me', {
+      const response = await fetch('http://192.168.1.40:3000/pins/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -54,7 +54,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoadingFriends(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/friends', {
+      const response = await fetch('http://192.168.1.40:3000/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -76,7 +76,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoadingSearch(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/users?pseudo=' + encodeURIComponent(text), {
+      const response = await fetch('http://192.168.1.40:3000/users?pseudo=' + encodeURIComponent(text), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -98,7 +98,7 @@ export default function MonProfilScreen({ navigation }) {
     setSearchMessage('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://10.17.9.88:3000/friend-request', {
+      const response = await fetch('http://192.168.1.40:3000/friend-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,23 +122,36 @@ export default function MonProfilScreen({ navigation }) {
   const canSendRequest = (item) => item.relation === 'none' && sending !== item.userId;
 
   useEffect(() => {
-    fetchUser();
-    fetchPins();
-    fetchFriends();
+    const checkAuth = async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Welcome' }], // ← ou le nom exact de ton écran de login
+        });
+        return;
+      }
+      fetchUser();
+      fetchPins();
+      fetchFriends();
+    };
+  
+    checkAuth();
   }, []);
-
   // Pour la grille d'archives : 12 cases vides (exemple)
   const archiveGrid = Array.from({ length: 12 });
 
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
-        <Image style={styles.avatar} source="/assets/images/notification.png" />
+        <TouchableOpacity onPress={() => navigation.navigate('ChooseProfilePhoto')} activeOpacity={0.8}>
+          <Image style={styles.avatar} />
+        </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: -5, marginTop : 30 }}>
           <Text style={styles.headerTitle}>{pseudo}</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerActionBtn}><Ionicons name="settings-outline" size={22} color="#111" /></TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => navigation.navigate('Settings')}><Ionicons name="settings-outline" size={22} color="#111" /></TouchableOpacity>
           <TouchableOpacity style={styles.headerActionBtn} onPress={() => setShowFriendsModal(true)}><Ionicons name="people-outline" size={22} color="#111" /></TouchableOpacity>
         </View>
       </View>
@@ -155,25 +168,33 @@ export default function MonProfilScreen({ navigation }) {
       {tab === 'pins' ? (
         <View style={styles.pinsZone}>
           {loading ? <ActivityIndicator style={{ marginTop: 16 }} /> : null}
-          <FlatList
-            data={pins}
-            keyExtractor={item => item.pinId}
-            numColumns={3}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.gridCell}
-                onPress={() => setSelectedPin(item)}
-                activeOpacity={0.8}
-              >
-                <Image
-                  source={{ uri: item.url || item.photoUrl }}
-                  style={styles.pinImage}
-                />
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune épingle</Text> : null}
-            contentContainerStyle={{ paddingBottom: 24 }}
-          />
+          {(!loading && (!pins || pins.length === 0)) ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -15 }] }}>
+              <Text style={{ fontSize: 18, color: '#888', textAlign: 'center', paddingHorizontal: 32 }}>
+                Aucune photo épinglée. La mémoire est patiente, les souvenirs viendront.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={pins}
+              keyExtractor={item => item.pinId}
+              numColumns={3}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.gridCell}
+                  onPress={() => setSelectedPin(item)}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{ uri: item.url || item.photoUrl }}
+                    style={styles.pinImage}
+                  />
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={null}
+              contentContainerStyle={{ paddingBottom: 24 }}
+            />
+          )}
         </View>
       ) : (
         <FlatList

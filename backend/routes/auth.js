@@ -279,7 +279,17 @@ router.get('/albums', authenticateToken, async (req, res) => {
   const userId = req.user.userId;
   try {
     const snapshot = await db.collection('albums').where('members', 'array-contains', userId).get();
-    const albums = snapshot.docs.map(doc => ({ albumId: doc.id, ...doc.data() }));
+    const albums = await Promise.all(snapshot.docs.map(async doc => {
+      const albumId = doc.id;
+      // Compte les photos conservées par l'utilisateur dans cet album
+      const statusSnap = await db.collection('userPhotoStatus')
+        .where('userId', '==', userId)
+        .where('albumId', '==', albumId)
+        .where('status', 'in', ['kept', 'pinned'])
+        .get();
+      const keptCount = statusSnap.size;
+      return { albumId, keptCount, ...doc.data() };
+    }));
     res.json({ albums });
   } catch (err) {
     res.status(500).json({ error: 'Erreur serveur' });
@@ -321,52 +331,63 @@ router.post('/albums/:id/photos', authenticateToken, upload.array('photos', 5), 
   const albumId = req.params.id;
   const uploaderId = req.user.userId;
   if (!req.files || req.files.length === 0) {
+    console.log('Aucun fichier reçu');
     return res.status(400).json({ error: 'Aucun fichier reçu' });
   }
   try {
     // Récupérer les membres de l'album
     const albumDoc = await db.collection('albums').doc(albumId).get();
+    console.log('albumDoc.exists:', albumDoc.exists);
     const albumData = albumDoc.data();
+    console.log('albumData:', albumData);
+    if (!albumDoc.exists || !albumData) {
+      console.log('Album introuvable');
+      return res.status(404).json({ error: 'Album introuvable' });
+    }
     const members = albumData.members || [];
+    console.log('members:', members);
     const urls = [];
     for (const file of req.files) {
-      // Upload vers Firebase Storage à la racine (warehouse)
-      const destination = `${Date.now()}_${file.originalname}`;
-      const blob = bucket.file(destination);
-      await blob.save(file.buffer, { contentType: file.mimetype });
-      // Rendre le fichier public (optionnel)
-      await blob.makePublic();
-      const url = `https://storage.googleapis.com/${bucket.name}/${destination}`;
-      urls.push(url);
-      // Enregistrer dans Firestore
-      const photoRef = await db.collection('photos').add({ albumId, uploaderId, url, createdAt: new Date() });
-      // Créer le statut 'kept' pour l'uploader
-      await db.collection('userPhotoStatus').add({
-        userId: uploaderId,
-        photoId: photoRef.id,
-        albumId,
-        status: 'kept',
-        vu: true,
-        createdAt: new Date(),
-      });
-      // Créer le statut 'pending' pour chaque autre membre
-      for (const memberId of members) {
-        if (memberId !== uploaderId) {
-          await db.collection('userPhotoStatus').add({
-            userId: memberId,
-            photoId: photoRef.id,
-            albumId,
-            status: 'pending',
-            vu: false,
-            createdAt: new Date(),
-          });
+      try {
+        console.log('Traitement du fichier:', file.originalname);
+        // Upload vers Firebase Storage à la racine (warehouse)
+        const destination = `${Date.now()}_${file.originalname}`;
+        const blob = bucket.file(destination);
+        await blob.save(file.buffer, { contentType: file.mimetype });
+        await blob.makePublic();
+        const url = `https://storage.googleapis.com/${bucket.name}/${destination}`;
+        urls.push(url);
+        // Enregistrer dans Firestore
+        const photoRef = await db.collection('photos').add({ albumId, uploaderId, url, createdAt: new Date() });
+        await db.collection('userPhotoStatus').add({
+          userId: uploaderId,
+          photoId: photoRef.id,
+          albumId,
+          status: 'kept',
+          vu: true,
+          createdAt: new Date(),
+        });
+        for (const memberId of members) {
+          if (memberId !== uploaderId) {
+            await db.collection('userPhotoStatus').add({
+              userId: memberId,
+              photoId: photoRef.id,
+              albumId,
+              status: 'pending',
+              vu: false,
+              createdAt: new Date(),
+            });
+          }
         }
+      } catch (fileErr) {
+        console.error('Erreur lors du traitement du fichier:', file.originalname, fileErr);
+        throw fileErr;
       }
     }
     res.status(201).json({ urls });
   } catch (err) {
     console.error('Erreur upload:', err);
-    res.status(500).json({ error: 'Erreur upload' });
+    res.status(500).json({ error: 'Ça bug' });
   }
 });
 
@@ -553,25 +574,30 @@ router.post('/users/me/fcm-token', authenticateToken, async (req, res) => {
   }
 });
 
-// Obtenir le pseudo à partir de l'Id 
-router.get('/users/:userId/pseudo', authenticateToken, async (req, res) => {
-  const { userId } = req.params;
-
+// Quitter un album (l'utilisateur retire son userId du tableau members)
+router.delete('/albums/:id/leave', authenticateToken, async (req, res) => {
+  const albumId = req.params.id;
+  const userId = req.user.userId;
   try {
-    const userDoc = await db.collection('users').doc(userId).get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: 'Utilisateur introuvable' });
+    const albumRef = db.collection('albums').doc(albumId);
+    const albumDoc = await albumRef.get();
+    if (!albumDoc.exists) {
+      return res.status(404).json({ error: "Album introuvable" });
     }
-
-    const { pseudo } = userDoc.data();
-    res.json({ pseudo });
+    const albumData = albumDoc.data();
+    if (!albumData.members.includes(userId)) {
+      return res.status(403).json({ error: "Vous n'êtes pas membre de cet album" });
+    }
+    // Retirer l'utilisateur du tableau members
+    const newMembers = albumData.members.filter(id => id !== userId);
+    await albumRef.update({ members: newMembers });
+    // Optionnel : supprimer les photos de l'utilisateur dans cet album, ou ses statuts
+    // Si plus aucun membre, tu peux aussi supprimer l'album complètement
+    res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
-
 
 module.exports = router;
 
