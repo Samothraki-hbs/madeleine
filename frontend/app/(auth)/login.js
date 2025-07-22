@@ -17,24 +17,27 @@ const LoginScreen = () => {
       const userCredential = await loginWithEmail(email, password);
       const token = await userCredential.user.getIdToken();
 
-      // Appel à la route /signup du backend
-      const response = await fetch('http://192.168.239.12:3000/signup', {
+      // Appel à la route /login du backend
+      const response = await fetch('http://192.168.0.50:3000/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          pseudo: userCredential.user.displayName || email.split('@')[0], // ou demande le pseudo à l'utilisateur
+          pseudo: userCredential.user.displayName || email.split('@')[0],
         }),
       });
 
-      if (!response.ok && response.status !== 409) { // 409 = déjà existant
+      if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Erreur lors de l\'inscription backend');
+        throw new Error(data.error || 'Erreur lors de la connexion backend');
       }
 
-      router.replace('/(app)/(tabs)/activite');
+      // Tu peux récupérer le token JWT ici si besoin :
+      // const { token: backendToken } = await response.json();
+
+      router.replace('/(app)/(tabs)/mon-profil');
     } catch (err) {
       setError(err.message);
     } finally {

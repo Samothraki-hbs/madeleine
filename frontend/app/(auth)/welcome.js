@@ -12,7 +12,7 @@ export default function WelcomeScreen() {
       if (user) {
         try {
           const idToken = await user.getIdToken();
-          const response = await fetch('http://192.168.239.12:3000/me', {
+          const response = await fetch('http://192.168.0.50:3000/me', {
             headers: { Authorization: `Bearer ${idToken}` },
           });
           if (response.status === 401) {

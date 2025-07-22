@@ -39,18 +39,21 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading) return; // Attend que l'état de chargement soit terminé
 
     const inAuthGroup = segments[0] === '(auth)';
     const inAppGroup = segments[0] === '(app)';
 
-    if (!user || !profile?.pseudo) {
-      // Utilisateur non connecté ou pas de pseudo
+    // Si l'utilisateur n'est pas connecté, on le redirige vers l'auth
+    if (!user) {
       if (!inAuthGroup) {
         router.replace('/(auth)/welcome');
       }
-    } else {
-      // Utilisateur connecté avec pseudo
+      return;
+    }
+
+    // Si l'utilisateur est connecté et le profil chargé, on le redirige vers l'activité
+    if (user && profile !== null) {
       if (!inAppGroup) {
         router.replace('/(app)/(tabs)/activite');
       }
