@@ -19,7 +19,7 @@ export default function SelectionAmisScreen() {
       setError('');
       try {
         const token = await AsyncStorage.getItem('token');
-        const response = await fetch('http://192.168.1.40:3000/friends', {
+        const response = await fetch('http://192.168.1.38:3000/friends', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -51,7 +51,7 @@ export default function SelectionAmisScreen() {
     setError('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/albums', {
+      const response = await fetch('http://192.168.1.38:3000/albums', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

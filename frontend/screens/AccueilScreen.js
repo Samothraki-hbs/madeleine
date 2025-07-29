@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5, FontAwesome,AntDesign } from '@expo/vector-icons';
 
 const CARD_WIDTH = 380 + 10; // card width + marginRight
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -23,12 +23,13 @@ export default function AccueilScreen() {
   const [loadingPins, setLoadingPins] = useState(true);
   const [likesState, setLikesState] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [FriendInfo, SetFriendInfo] = useState([])
 
   const fetchFriendPins = async () => {
     setLoadingPins(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/pins/friends', {
+      const response = await fetch('http://192.168.1.38:3000/pins/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -61,14 +62,38 @@ export default function AccueilScreen() {
       console.warn("Impossible de scroller : FlatList vide ou non initialisée.");
     }
   };
-  
+  //const InfoUser = async (userId) => {
+    //try{
+      //const token = await AsyncStorage.getItem('token');
+      //const response = await fetch(`http://192.168.1.38:3000/user/${userId}`, {
+        //headers: { Authorization: `Bearer ${token}` },
+      //});
+      //const data = await response.json();
+    //}catch (err) {
+     //SetFriendInfo([]);}
+  //};
+  const InfoUser = (userId) => {
+    console.log("Demande reçue");
+    try {
+      const token =  AsyncStorage.getItem('token');
+      const response =  fetch(`http://192.168.1.38:3000/user/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data =  response.json();
+      if (response.ok) SetFriendInfo(data);
+      else SetFriendInfo([]);
+    } catch (err) {
+      SetFriendInfo([]);
+    }
+    console.log(FriendInfo)
+  };
 
   useFocusEffect(
     useCallback(() => {
       fetchFriendPins();
     }, [])
   );
-  
+  console.log(friendPins);
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -76,16 +101,16 @@ export default function AccueilScreen() {
         <Text style={styles.headerTitle}>Activité</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity
-            style={[styles.roundIcon, { backgroundColor: '#ff4d2e' }]}
+            style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
             onPress={() => {}}
           >
-            <FontAwesome name="trophy" size={24} color="white" />
+            <FontAwesome5 name="lemon" size={24} color="black" />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <Ionicons name="notifications-outline" size={24} color="#222" />
+            <Ionicons name="notifications-outline" size={24} color="black" />
           </TouchableOpacity>
         </View>
       </View>
@@ -111,6 +136,7 @@ export default function AccueilScreen() {
             const liked = likesState[item.pinId] || false;
             return (
               <View style={styles.activityCard}>
+                <Text style={styles.AuteurPin}>Publié par {InfoUser(item.userId)}</Text>
                 <View style={styles.activityImageBox}>
                   {item.photoUrl && (
                     <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
@@ -229,6 +255,11 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginBottom: 0,
     marginLeft: 0,
+  },
+  AuteurPin :{
+    position : 'absolute',
+    top : 90,
+    left : 10, 
   },
   pinCard: {
     width: 320,

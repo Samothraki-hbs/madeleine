@@ -20,7 +20,7 @@ export default function MesAlbumsScreen() {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/albums', {
+      const response = await fetch('http://192.168.1.38:3000/albums', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -36,7 +36,7 @@ export default function MesAlbumsScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       // On récupère les amis (userA = moi, userB = ami)
-      const response = await fetch('http://192.168.1.40:3000/friends', {
+      const response = await fetch('http://192.168.1.38:3000/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -70,7 +70,7 @@ export default function MesAlbumsScreen() {
     setError('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/albums', {
+      const response = await fetch('http://192.168.1.38:3000/albums', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export default function MesAlbumsScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       // Remplace l'URL par celle de ton backend si besoin
-      const response = await fetch(`http://192.168.1.40:3000/albums/${albumId}/leave`, {
+      const response = await fetch(`http://192.168.1.38:3000/albums/${albumId}/leave`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

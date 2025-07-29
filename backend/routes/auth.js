@@ -325,71 +325,100 @@ router.get('/albums/:id/photos', authenticateToken, async (req, res) => {
   }
 });
 
-// Ajouter des photos à un album (upload fichiers)
+
+
+
+// Déposer des photos dans un album
 router.post('/albums/:id/photos', authenticateToken, upload.array('photos', 5), async (req, res) => {
-  console.log('Requête reçue pour upload photos');
   const albumId = req.params.id;
   const uploaderId = req.user.userId;
   if (!req.files || req.files.length === 0) {
-    console.log('Aucun fichier reçu');
+    
     return res.status(400).json({ error: 'Aucun fichier reçu' });
   }
+
   try {
-    // Récupérer les membres de l'album
+    
     const albumDoc = await db.collection('albums').doc(albumId).get();
-    console.log('albumDoc.exists:', albumDoc.exists);
-    const albumData = albumDoc.data();
-    console.log('albumData:', albumData);
-    if (!albumDoc.exists || !albumData) {
-      console.log('Album introuvable');
+    
+
+    if (!albumDoc.exists) {
+      
       return res.status(404).json({ error: 'Album introuvable' });
     }
+
+    const albumData = albumDoc.data();
     const members = albumData.members || [];
-    console.log('members:', members);
+    
+
     const urls = [];
-    for (const file of req.files) {
-      try {
-        console.log('Traitement du fichier:', file.originalname);
-        // Upload vers Firebase Storage à la racine (warehouse)
+
+    
+    const uploadResults = await Promise.all(
+      req.files.map(async (file) => {
         const destination = `${Date.now()}_${file.originalname}`;
+      
+
         const blob = bucket.file(destination);
         await blob.save(file.buffer, { contentType: file.mimetype });
         await blob.makePublic();
         const url = `https://storage.googleapis.com/${bucket.name}/${destination}`;
         urls.push(url);
-        // Enregistrer dans Firestore
-        const photoRef = await db.collection('photos').add({ albumId, uploaderId, url, createdAt: new Date() });
-        await db.collection('userPhotoStatus').add({
-          userId: uploaderId,
-          photoId: photoRef.id,
-          albumId,
-          status: 'kept',
-          vu: true,
-          createdAt: new Date(),
-        });
-        for (const memberId of members) {
-          if (memberId !== uploaderId) {
-            await db.collection('userPhotoStatus').add({
-              userId: memberId,
-              photoId: photoRef.id,
-              albumId,
-              status: 'pending',
-              vu: false,
-              createdAt: new Date(),
-            });
-          }
+
+        return { url, destination };
+      })
+    );
+    
+    const batch = db.batch();
+
+    for (const result of uploadResults) {
+      const { url } = result;
+      const photoRef = db.collection('photos').doc();
+      batch.set(photoRef, {
+        albumId,
+        uploaderId,
+        url,
+        createdAt: new Date(),
+      });
+
+      const statusRefUploader = db.collection('userPhotoStatus').doc();
+      batch.set(statusRefUploader, {
+        userId: uploaderId,
+        photoId: photoRef.id,
+        albumId,
+        status: 'kept',
+        vu: true,
+        createdAt: new Date(),
+      });
+
+      for (const memberId of members) {
+        if (memberId !== uploaderId) {
+          const statusRef = db.collection('userPhotoStatus').doc();
+          batch.set(statusRef, {
+            userId: memberId,
+            photoId: photoRef.id,
+            albumId,
+            status: 'pending',
+            vu: false,
+            createdAt: new Date(),
+          });
         }
-      } catch (fileErr) {
-        console.error('Erreur lors du traitement du fichier:', file.originalname, fileErr);
-        throw fileErr;
       }
-    }
-    res.status(201).json({ urls });
+    }""
+
+    await batch.commit();
+    
+
+    
+    return res.status(201).json({ urls });
   } catch (err) {
-    console.error('Erreur upload:', err);
-    res.status(500).json({ error: 'Ça bug' });
+    
+    
+    return res.status(500).json({ error: 'Erreur serveur pendant upload' });
   }
 });
+
+
 
 // Récupérer la liste des amis de l'utilisateur connecté
 router.get('/friends', authenticateToken, async (req, res) => {
@@ -599,5 +628,33 @@ router.delete('/albums/:id/leave', authenticateToken, async (req, res) => {
   }
 });
 
+// Enregistrer la photo de profil standard choisie par l'utilisateur
+router.post('/users/me/profile-photo-standard', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  const { standardIndex } = req.body;
+
+  // Vérification de l'index
+  if (typeof standardIndex !== 'number' || standardIndex < 0 || standardIndex > 5) {
+    return res.status(400).json({ error: 'Index de photo standard invalide' });
+  }
+
+  try {
+    // Met à jour le champ standardProfilePhoto et supprime l'ancienne photo perso si besoin
+    await db.collection('users').doc(userId).update({
+      standardProfilePhoto: standardIndex,
+      photoUrl: null // On efface l'URL d'une éventuelle photo perso
+    });
+    res.json({ success: true, standardProfilePhoto: standardIndex });
+  } catch (err) {
+    console.error('Erreur lors de la sauvegarde de la photo de profil standard:', err);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Identifier un utilisateur par son identifiant
+router.get('users/identifier_utilisateur', authenticateToken, async(req, res) => {
+  const userId = req.user.UserId;
+  console.log(userId)
+});
 module.exports = router;
 

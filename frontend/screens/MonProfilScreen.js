@@ -3,8 +3,18 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, ActivityIndi
 import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const pdpAssets = [
+  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP1.jpg'),
+  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP2.jpg'),
+  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP3.jpg'),
+  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP4.jpg'),
+  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP5.jpg'),
+  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP6.jpg'),
+];
+
 export default function MonProfilScreen({ navigation }) {
   const [pseudo, setPseudo] = useState('');
+  const [PdP, setPdP] = useState('');
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPin, setSelectedPin] = useState(null);
@@ -22,12 +32,13 @@ export default function MonProfilScreen({ navigation }) {
   const fetchUser = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/me', {
+      const response = await fetch('http://192.168.1.38:3000/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
       if (response.ok && data.user && data.user.pseudo) {
         setPseudo(data.user.pseudo);
+        setPdP(data.user.standardProfilePhoto);
       }
     } catch (err) {
       // ignore
@@ -38,7 +49,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/pins/me', {
+      const response = await fetch('http://192.168.1.38:3000/pins/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -54,7 +65,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoadingFriends(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/friends', {
+      const response = await fetch('http://192.168.1.38:3000/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -76,7 +87,7 @@ export default function MonProfilScreen({ navigation }) {
     setLoadingSearch(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/users?pseudo=' + encodeURIComponent(text), {
+      const response = await fetch('http://192.168.1.38:3000/users?pseudo=' + encodeURIComponent(text), {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -98,7 +109,7 @@ export default function MonProfilScreen({ navigation }) {
     setSearchMessage('');
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://192.168.1.40:3000/friend-request', {
+      const response = await fetch('http://192.168.1.38:3000/friend-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +156,7 @@ export default function MonProfilScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <TouchableOpacity onPress={() => navigation.navigate('ChooseProfilePhoto')} activeOpacity={0.8}>
-          <Image style={styles.avatar} />
+          <Image source={ pdpAssets[PdP]} style={styles.avatar} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: -5, marginTop : 30 }}>
           <Text style={styles.headerTitle}>{pseudo}</Text>
@@ -347,7 +358,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#111',
-    marginBottom: 0,
+    marginBottom: 20,
   },
   headerActions: {
     flexDirection: 'column',

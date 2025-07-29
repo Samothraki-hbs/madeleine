@@ -13,6 +13,8 @@ import PseudoScreen from '../screens/signup/PseudoScreen'
 import PreviewSelectedPhotosScreen from '../screens/PreviewSelectedPhotosScreen';
 import AddFriendsScreen from '../screens/signup/AddFriendsScreen';
 import ChooseProfilePhotoScreen from '../screens/signup/ChooseProfilePhotoScreen';
+import FullScreenPhotoViewer from '../screens/FullScreenPhotoViewer';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -32,6 +34,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Album" component={AlbumScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="PreviewSelectedPhotos" component={PreviewSelectedPhotosScreen} />
+      <Stack.Screen name="FullScreenPhotoViewer" component={FullScreenPhotoViewer} />
     </Stack.Navigator>
   );
 } 

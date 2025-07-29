@@ -10,6 +10,13 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const GAP = 8;
+const COLUMN_COUNT = 3;
+const ITEM_SIZE = (SCREEN_WIDTH - GAP * (COLUMN_COUNT + 1)) / COLUMN_COUNT;
+
+
 export default function AlbumScreen({ route }) {
   const { albumId, albumName } = route.params;
   const navigation = useNavigation();
@@ -29,7 +36,7 @@ export default function AlbumScreen({ route }) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`http://192.168.1.40:3000/albums/${albumId}/photos`, {
+      const response = await fetch(`http://192.168.1.38:3000/albums/${albumId}/photos`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -44,7 +51,7 @@ export default function AlbumScreen({ route }) {
   const fetchPhotosToSort = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`http://192.168.1.40:3000/albums/${albumId}/photos-to-sort`, {
+      const response = await fetch(`http://192.168.1.38:3000/albums/${albumId}/photos-to-sort`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -82,100 +89,19 @@ export default function AlbumScreen({ route }) {
     }
   };
 
-  const compressIfNeeded = async (asset) => {
-    try {
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      if (blob.size <= 1024 * 1024) {
-        return asset; // <= 1 Mo
-      }
-      // Compresser jusqu'à obtenir <= 1 Mo
-      let quality = 0.8;
-      let compressed = asset;
-      let compressedBlob = blob;
-      while (compressedBlob.size > 1024 * 1024 && quality > 0.1) {
-        const manipResult = await ImageManipulator.manipulateAsync(
-          asset.uri,
-          [],
-          { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        const resp = await fetch(manipResult.uri);
-        compressedBlob = await resp.blob();
-        compressed = { ...asset, uri: manipResult.uri };
-        quality -= 0.1;
-      }
-      return compressed;
-    } catch (e) {
-      return asset;
-    }
-  };
-
-  const uploadPhotos = async () => {
-    setError('');
-    setUploading(true);
-    try {
-      const token = await AsyncStorage.getItem('token');
-      // Compresser si besoin
-      const compressedImages = [];
-      for (const asset of selectedImages) {
-        compressedImages.push(await compressIfNeeded(asset));
-      }
-      const formData = new FormData();
-      compressedImages.forEach((img, i) => {
-        formData.append('photos', {
-          uri: img.uri,
-          name: `photo_${Date.now()}_${i}.jpg`,
-          type: 'image/jpeg',
-        });
-      });
-      const response = await fetch(`http://192.168.1.40:3000/albums/${albumId}/photos`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-      if (response.ok) {
-        setSelectedImages([]);
-        fetchPhotos();
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Erreur lors de l\'upload');
-      }
-    } catch (err) {
-      setError('Erreur réseau');
-    }
-    setUploading(false);
-  };
-
-  // PanResponder pour le swipe
-  const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 20 || Math.abs(gesture.dy) > 20,
-    onPanResponderMove: Animated.event([
-      null,
-      { dx: pan.x, dy: pan.y }
-    ], { useNativeDriver: false }),
-    onPanResponderRelease: (_, gesture) => {
-      if (gesture.dx < -80) handleSort('archived'); // swipe gauche
-      else if (gesture.dx > 80) handleSort('kept'); // swipe droite
-      else if (gesture.dy < -80) handleSort('pinned'); // swipe haut
-      else Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false }).start();
-    },
-  });
-
   const handleSort = async (status) => {
     if (!photosToSort[currentSortIndex]) return;
     const photo = photosToSort[currentSortIndex];
     try {
       const token = await AsyncStorage.getItem('token');
       if (status === 'pinned') {
-        await fetch(`http://192.168.1.40:3000/photos/${photo.photoId}/pin`, {
+        await fetch(`http://192.168.1.38:3000/photos/${photo.photoId}/pin`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ albumId }),
         });
       } else {
-        await fetch(`http://192.168.1.40:3000/photos/${photo.photoId}/status`, {
+        await fetch(`http://192.168.1.38:3000/photos/${photo.photoId}/status`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ albumId, status }),
@@ -204,6 +130,7 @@ export default function AlbumScreen({ route }) {
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
+
 
   return (
     <View style={styles.container}>
@@ -263,12 +190,21 @@ export default function AlbumScreen({ route }) {
         <Animated.FlatList
           data={photos}
           keyExtractor={item => item.photoId}
-          numColumns={2}
-          renderItem={({ item }) => (
-            <View style={styles.photoCell}>
-              <Image source={{ uri: item.url }} style={styles.photo} />
-            </View>
-          )}
+          numColumns={3}
+        
+          renderItem={({ item, index }) => {
+            
+            return (
+              <TouchableOpacity onPress={() => navigation.navigate('FullScreenPhotoViewer', {
+                photos,
+                startIndex: index,
+              })}>
+                <View style={styles.photoCell}>
+                  <Image source={{ uri: item.url }} style={styles.photo} />
+                </View>
+              </TouchableOpacity>
+            );
+          }}
           ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune photo</Text> : null}
           contentContainerStyle={{ paddingBottom: 40 }}
           style={{ flex: 1 }}
@@ -290,13 +226,13 @@ export default function AlbumScreen({ route }) {
                 if (direction === 'right') status = 'kept';
                 const token = await AsyncStorage.getItem('token');
                 if (direction === 'top') {
-                  await fetch(`http://192.168.1.40:3000/photos/${photo.photoId}/pin`, {
+                  await fetch(`http://192.168.1.38:3000/photos/${photo.photoId}/pin`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ albumId }),
                   });
                 } else {
-                  await fetch(`http://192.168.1.40:3000/photos/${photo.photoId}/status`, {
+                  await fetch(`http://192.168.1.38:3000/photos/${photo.photoId}/status`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ albumId, status }),
@@ -465,19 +401,19 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   photoCell: {
-    flex: 1,
-    aspectRatio: 1,
-    margin: 8,
+    width: ITEM_SIZE,
+    height: ITEM_SIZE,
+    margin: GAP / 2,
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 2,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
   },
   photo: {
     width: '100%',

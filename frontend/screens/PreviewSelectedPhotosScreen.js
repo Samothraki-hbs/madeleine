@@ -39,44 +39,60 @@ export default function PreviewSelectedPhotosScreen({ route, navigation }) {
   const uploadPhotos = async () => {
     setError('');
     setUploading(true);
+    console.log('🚀 uploadPhotos lancé');
     try {
       const token = await AsyncStorage.getItem('token');
-      // Compresser si besoin
-      const compressedImages = [];
-      for (const asset of images) {
-        compressedImages.push(await compressIfNeeded(asset));
-      }
+  
+      // ⚡ Compression en parallèle
+      const compressedImages = await Promise.all(
+        images.map(async (asset) => {
+          if (asset.uri.endsWith('.jpg') || asset.uri.endsWith('.jpeg')) {
+            // Compression uniquement si JPEG
+            try {
+              const result = await ImageManipulator.manipulateAsync(
+                asset.uri,
+                [{ resize: { width: 1280 } }],
+                { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
+              );
+              return { ...asset, uri: result.uri };
+            } catch {
+              return asset; // fallback si compression échoue
+            }
+          }
+          return asset; // pas de compression pour PNG ou autres
+        })
+      );
+  
       const formData = new FormData();
       compressedImages.forEach((img, i) => {
         formData.append('photos', {
           uri: img.uri,
-          name: `photo_${Date.now()}_${i}.jpg`,
+          name: `photo_${i}.jpg`,
           type: 'image/jpeg',
         });
       });
-      const response = await fetch(`http://192.168.1.44:3000/albums/${albumId}/photos`, {
+      console.log('📡 Envoi fetch avec', formData._parts?.length || '??', 'fichiers');
+
+      const response = await fetch(`http://192.168.1.38:3000/albums/${albumId}/photos`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
         body: formData,
       });
-      if (response.ok) {
-        if (onUploadSuccess) onUploadSuccess();
-        navigation.goBack();
-      } else {
-        let data = {};
-        try {
-          data = await response.json();
-        } catch (e) {
-          data.error = "Erreur lors de l'upload (réponse inattendue du serveur)";
-        }
-        setError(data.error || "Erreur lors de l'upload");
+  
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Erreur inconnue lors de l'upload");
       }
+  
+      onUploadSuccess?.();
+      navigation.goBack();
     } catch (err) {
-      setError('Erreur réseau ou serveur injoignable');
+      setError(err.message || 'Erreur réseau ou serveur injoignable');
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   return (

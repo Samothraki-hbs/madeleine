@@ -9,9 +9,10 @@ export default function WelcomeScreen({ navigation }) {
   useEffect(() => {
     const checkToken = async () => {
       const token = await AsyncStorage.getItem('token');
+      console.log(token);
       if (token) {
         try {
-          const response = await fetch('http://192.168.1.44:3000/me', {
+          const response = await fetch('http://192.168.1.38:3000/me', {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (response.status === 401) {

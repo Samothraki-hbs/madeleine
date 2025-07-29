@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Asset } from 'expo-asset';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CIRCLE_SIZE = 220;
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -28,6 +29,8 @@ const pdpAssets = [
 
 export default function ChooseProfilePhotoScreen({ navigation }) {
   const [image, setImage] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [scale] = useState(new Animated.Value(1));
   const position = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -61,13 +64,33 @@ export default function ChooseProfilePhotoScreen({ navigation }) {
     },
   });
 
-  const handleSelectStandard = (uri) => {
+  const handleSelectStandard = (uri, index) => {
     setImage(uri);
+    setSelectedIndex(index);
     setModalVisible(false);
   };
+  
+  const handleNext = async () => {
+    if (standardIndex !== null) {
+      await saveStandardProfilePhoto(standardIndex);
+    }
+    
+  };
 
-  const handleValidate = () => {
+  
+
+  const saveStandardProfilePhoto = async (standardIndex) => {
     navigation.replace('AddFriends');
+    const token = await AsyncStorage.getItem('token');
+    await fetch('http://192.168.1.38:3000/users/me/profile-photo-standard', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ standardIndex }),
+      
+    });
   };
 
   return (
@@ -80,13 +103,15 @@ export default function ChooseProfilePhotoScreen({ navigation }) {
 
       <ScrollView horizontal contentContainerStyle={styles.miniaturesRow}>
         {standardPhotos.filter(uri => uri !== image).map((uri, index) => (
-          <TouchableOpacity key={index} onPress={() => handleSelectStandard(uri)}>
-            <Image source={{ uri }} style={styles.miniature} />
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity key={index} onPress={() => handleSelectStandard(uri, index)}>
+          <Image source={{ uri }} style={styles.miniature} />
+        </TouchableOpacity>
+))}
       </ScrollView>
 
-      <TouchableOpacity style={styles.validateBtn} onPress={handleValidate} disabled={!image}>
+      <TouchableOpacity style={styles.validateBtn} onPress={() => saveStandardProfilePhoto(selectedIndex)}
+        disabled={selectedIndex === null}
+      >
         <Text style={styles.validateText}>Suivant</Text>
       </TouchableOpacity>
     </View>
@@ -101,12 +126,14 @@ const styles = StyleSheet.create({
     paddingTop: 80,
   },
   title: {
+    marginTop : 30,
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#111',
   },
   avatarCircle: {
+
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
@@ -126,8 +153,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingVertical: 14,
     paddingHorizontal: 48,
-    marginTop: 32,
-    alignItems: 'center',
+    marginBottom : 100,
+    
   },
   validateText: {
     color: '#fff',
