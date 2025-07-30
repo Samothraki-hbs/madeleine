@@ -30,7 +30,7 @@ export default function FullScreenPhotoViewer({ route, navigation }) {
         )}
       />
       <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()}>
-        <AntDesign name="close" size={32} color="#fff" />
+        <AntDesign name="close" size={32} color="black" />
       </TouchableOpacity>
     </View>
   );
@@ -38,7 +38,7 @@ export default function FullScreenPhotoViewer({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#000',
+    backgroundColor: 'white',
     flex: 1,
   },
   imageWrapper: {
@@ -54,8 +54,9 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     position: 'absolute',
-    top: 40,
+    top: 70,
     right: 24,
     zIndex: 10,
+    color : "black",
   },
 });

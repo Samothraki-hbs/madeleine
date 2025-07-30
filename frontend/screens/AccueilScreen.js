@@ -23,8 +23,8 @@ export default function AccueilScreen() {
   const [loadingPins, setLoadingPins] = useState(true);
   const [likesState, setLikesState] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [FriendInfo, SetFriendInfo] = useState([])
-
+  const [FriendInfo, setFriendInfo] = useState(null)
+  
   const fetchFriendPins = async () => {
     setLoadingPins(true);
     try {
@@ -39,6 +39,42 @@ export default function AccueilScreen() {
       setFriendPins([]);
     }
     setLoadingPins(false);
+  };
+  const [pseudoCache, setPseudoCache] = useState({});
+
+  const AuteurPseudo = ({ userId, cache, setCache }) => {
+    const [pseudo, setPseudo] = useState(null);
+  
+    useEffect(() => {
+      const getPseudo = async () => {
+        if (cache[userId]) {
+          setPseudo(cache[userId]);
+          return;
+        }
+  
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const response = await fetch(`http://192.168.1.38:3000/information/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await response.json();
+  
+          if (response.ok && data.pseudo) {
+            setPseudo(data.pseudo);
+            
+            setCache(prev => ({ ...prev, [userId]: data.pseudo }));
+          }
+        } catch (err) {
+          console.error("Erreur fetch pseudo", err);
+        }
+      };
+  
+      getPseudo();
+    }, [userId]);
+  
+    return (
+      <Text style={styles.AuteurPin}>Publié par {pseudo || '...'}</Text>
+    );
   };
   
 
@@ -62,38 +98,18 @@ export default function AccueilScreen() {
       console.warn("Impossible de scroller : FlatList vide ou non initialisée.");
     }
   };
-  //const InfoUser = async (userId) => {
-    //try{
-      //const token = await AsyncStorage.getItem('token');
-      //const response = await fetch(`http://192.168.1.38:3000/user/${userId}`, {
-        //headers: { Authorization: `Bearer ${token}` },
-      //});
-      //const data = await response.json();
-    //}catch (err) {
-     //SetFriendInfo([]);}
-  //};
-  const InfoUser = (userId) => {
-    console.log("Demande reçue");
-    try {
-      const token =  AsyncStorage.getItem('token');
-      const response =  fetch(`http://192.168.1.38:3000/user/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data =  response.json();
-      if (response.ok) SetFriendInfo(data);
-      else SetFriendInfo([]);
-    } catch (err) {
-      SetFriendInfo([]);
-    }
-    console.log(FriendInfo)
-  };
+  
+  
 
   useFocusEffect(
     useCallback(() => {
       fetchFriendPins();
     }, [])
   );
-  console.log(friendPins);
+  
+
+  
+  
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -134,9 +150,11 @@ export default function AccueilScreen() {
           onMomentumScrollEnd={handleScrollEnd}
           renderItem={({ item }) => {
             const liked = likesState[item.pinId] || false;
+          
             return (
               <View style={styles.activityCard}>
-                <Text style={styles.AuteurPin}>Publié par {InfoUser(item.userId)}</Text>
+                <AuteurPseudo userId={item.userId} cache={pseudoCache} setCache={setPseudoCache} />
+
                 <View style={styles.activityImageBox}>
                   {item.photoUrl && (
                     <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
@@ -156,6 +174,7 @@ export default function AccueilScreen() {
               </View>
             );
           }}
+          
         />
       )}
 
@@ -256,10 +275,18 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     marginLeft: 0,
   },
-  AuteurPin :{
-    position : 'absolute',
-    top : 90,
-    left : 10, 
+  AuteurPin: {
+    position: 'absolute',
+    top: 90,
+    left: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'black',
+    textShadowRadius: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   pinCard: {
     width: 320,

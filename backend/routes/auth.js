@@ -325,7 +325,21 @@ router.get('/albums/:id/photos', authenticateToken, async (req, res) => {
   }
 });
 
-
+// Récupérer info utilisateur à partir de l'userId
+router.get("/information/:userId", authenticateToken, async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const doc = await db.collection("users").doc(userId).get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: "Utilisateur introuvable" });
+    }
+    const data = doc.data();
+    res.json(data); // ✅ renvoie uniquement les données
+  } catch (err) {
+    console.error("Erreur serveur :", err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
 
 
 // Déposer des photos dans un album
