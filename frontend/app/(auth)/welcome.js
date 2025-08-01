@@ -1,6 +1,6 @@
 /// Welcome Screen
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import { router } from 'expo-router';
@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
             router.replace('/(app)/(tabs)/activite');
           }
         } catch (err) {
-          // Erreur réseau, tu peux choisir de rester sur WelcomeScreen ou afficher un message
+          setError('Impossible de contacter le serveur. Vérifie ta connexion.');
         }
       }
     };
@@ -38,6 +38,7 @@ export default function WelcomeScreen() {
         <Text style={styles.subtitle}>
           Le nouveau réseau social pour partager des nouvelles entre proches !
         </Text>
+        {error ? <Text style={{ color: 'red', marginTop: 16 }}>{error}</Text> : null}
       </View>
       <TouchableOpacity
         style={styles.button}

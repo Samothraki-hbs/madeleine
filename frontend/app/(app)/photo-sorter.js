@@ -1,50 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import Swiper from 'react-native-deck-swiper';
-import { View, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  View,
+  Image,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
+const CARD_WIDTH = width * 0.9;
+const CARD_HEIGHT = height * 0.65;
 
 export default function PhotoSorter({ photos = [], onSwipe = () => {}, onClose }) {
   const [cardIndex, setCardIndex] = useState(0);
 
   useEffect(() => {
-    if (cardIndex >= photos.length) {
-      if (onClose) onClose();
-    }
-  }, [cardIndex, photos.length, onClose]);
-
-  // Carte : 90% largeur, 70% hauteur, centrée
-  const CARD_WIDTH = width * 0.9;
-  const CARD_HEIGHT = height * 0.7;
+    if (cardIndex >= photos.length && onClose) onClose();
+  }, [cardIndex]);
 
   const handleSwipe = (direction) => {
-    if (photos[cardIndex]) {
-      onSwipe(photos[cardIndex], direction);
-    }
+    if (photos[cardIndex]) onSwipe(photos[cardIndex], direction);
     if (cardIndex + 1 >= photos.length) {
       if (direction !== 'top' && onClose) onClose();
     } else {
-      setCardIndex(idx => idx + 1);
+      setCardIndex((idx) => idx + 1);
     }
   };
 
   if (cardIndex >= photos.length) return null;
 
+  const currentPhoto = photos[cardIndex];
+  const pseudo = currentPhoto?.pseudo || "François"; // à adapter dynamiquement
+
   return (
-    <View style={styles.overlay}>
-      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Ionicons name="close" size={36} color="#fff" />
-      </TouchableOpacity>
-      <View style={styles.centeredContainer}>
+    <View style={styles.container}>
+      {/* Top Header */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={onClose}>
+          <Ionicons name="arrow-back" size={26} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.uploader}>Déposée par {pseudo}</Text>
+        <View style={styles.progressBar}>
+          {photos.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.progressDot,
+                index === cardIndex ? styles.activeDot : {},
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+
+      {/* Swiper */}
+      <View style={styles.cardWrapper}>
         <Swiper
           cards={photos}
           cardIndex={cardIndex}
           renderCard={(photo) => (
-            <View style={styles.cardWrapper}>
-              <View style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT }] }>
-                <Image source={{ uri: photo.url }} style={styles.image} />
-              </View>
+            <View style={styles.card}>
+              <Image source={{ uri: photo.url }} style={styles.image} />
             </View>
           )}
           onSwipedLeft={() => handleSwipe('left')}
@@ -52,80 +71,91 @@ export default function PhotoSorter({ photos = [], onSwipe = () => {}, onClose }
           onSwipedTop={() => handleSwipe('top')}
           backgroundColor={'transparent'}
           stackSize={1}
-          stackSeparation={8}
-          animateOverlayLabelsOpacity={false}
+          stackSeparation={6}
           disableBottomSwipe
           swipeBackCard
-          swipeThreshold={0.35 * width}
-          containerStyle={styles.swiperContainer}
-          showSecondCard={false}
+          swipeThreshold={width * 0.3}
+          containerStyle={{ backgroundColor: 'transparent' }}
         />
+      </View>
+
+      {/* Bottom Buttons */}
+      <View style={styles.bottomButtons}>
+        <TouchableOpacity style={styles.circleButton}>
+          <Feather name="download" size={28} color="black" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.circleButton}>
+          <MaterialCommunityIcons name="trash-can" size={28} color="red" />
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
+    backgroundColor: '#fff',
     alignItems: 'center',
-    zIndex: 100,
+    justifyContent: 'space-between',
+    paddingTop: 50,
+    paddingBottom: 20,
+    width : '100%', 
   },
-  centeredContainer: {
+  topBar: {
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  uploader: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 6,
+  },
+  progressBar: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 6,
+  },
+  progressDot: {
+    height: 4,
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
+    backgroundColor: 'gray',
+    borderRadius: 2,
   },
-  closeButton: {
-    position: 'absolute',
-    top: 40,
-    left: 30,
-    zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 24,
-    padding: 6,
-  },
-  swiperContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  cardWrapper: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  card: {
-    borderRadius: 24,
-    borderWidth: 4,
-    borderColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#111',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.7,
-    shadowRadius: 16,
-    elevation: 16,
-    overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-    alignSelf: 'center',
+  activeDot: {
     backgroundColor: '#000',
   },
-}); 
+  cardWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    right : CARD_WIDTH/2 +20, 
+  },
+  card: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: 16,
+    overflow: 'hidden',
+    
+  },
+  image: {
+    width: '95%',
+    height: '95%',
+    resizeMode: 'contain',
+    backgroundColor: '#000',
+  },
+  bottomButtons: {
+    flexDirection: 'row',
+    gap: 20,
+    justifyContent: 'center',
+  },
+  circleButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

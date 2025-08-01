@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 
 export default function MonProfilScreen() {
   const [pseudo, setPseudo] = useState('');
+  const [PdP, setPdP] = useState('');
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPin, setSelectedPin] = useState(null);
@@ -32,6 +33,7 @@ export default function MonProfilScreen() {
       const data = await response.json();
       if (response.ok && data.user && data.user.pseudo) {
         setPseudo(data.user.pseudo);
+        setPdP(data.user.standardProfilePhoto);
       }
     } catch (err) {
       // ignore
@@ -63,36 +65,102 @@ export default function MonProfilScreen() {
   const fetchPseudo = async () => {
     try {
       const user = auth().currentUser;
-      if (!user) {
-        setPseudo('');
-        return;
-      }
-      // Assuming 'users' collection exists in your Firestore
-      // This part of the original code was using firebase/firestore, which is removed.
-      // For now, we'll keep it as is, but it might need adjustment depending on your Firestore structure.
-      // If you have a 'users' collection, you'd use getFirestore(app) and doc(db, "users", user.uid)
-      // For now, we'll just set pseudo to empty or handle it differently if 'users' collection is not available.
-      // setPseudo(userDoc.data().pseudo); // This line was removed as per the new_code
-      setPseudo(''); // Placeholder, as 'users' collection is not imported
+      const response = await fetch('http://10.17.9.88:3000/friends', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok && data.friends) setFriends(data.friends);
+      else setFriends([]);
     } catch (err) {
-      setPseudo('');
+      setFriends([]);
     }
+    setLoadingFriends(false);
   };
 
-  useEffect(() => {
-    fetchUser();
-    fetchPins();
-    fetchPseudo();
-  }, []);
+  const handleSearch = async (text) => {
+    setSearch(text);
+    setSearchMessage('');
+    if (text.length < 2) {
+      setResults([]);
+      return;
+    }
+    setLoadingSearch(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await fetch('http://10.17.9.88:3000/users?pseudo=' + encodeURIComponent(text), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setResults(data.users);
+      } else {
+        setResults([]);
+        setSearchMessage(data.error || 'Erreur lors de la recherche');
+      }
+    } catch (err) {
+      setResults([]);
+      setSearchMessage('Erreur réseau');
+    }
+    setLoadingSearch(false);
+  };
 
+  const sendFriendRequest = async (toUserId) => {
+    setSending(toUserId);
+    setSearchMessage('');
+    try {
+      const user = auth().currentUser;
+      if (!user) return;
+      const idToken = await user.getIdToken();
+      const response = await fetch('http://10.17.9.88:3000/friend-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ toUserId }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSearchMessage('Demande envoyée !');
+      } else {
+        setSearchMessage(data.error || 'Erreur lors de l\'envoi');
+      }
+    } catch (err) {
+      setSearchMessage('Erreur réseau');
+    }
+    setSending(null);
+  };
+
+  // Helper pour savoir si on peut envoyer une demande
+  const canSendRequest = (item) => item.relation === 'none' && sending !== item.userId;
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Welcome' }], // ← ou le nom exact de ton écran de login
+        });
+        return;
+      }
+      fetchUser();
+      fetchPins();
+      fetchPseudo();
+    };
+  
+    checkAuth();
+  }, []);
   // Pour la grille d'archives : 12 cases vides (exemple)
   const archiveGrid = Array.from({ length: 12 });
 
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
-        <Image style={styles.avatar} />
-        <View style={{ flex: 1, marginLeft: 18 }}>
+        <TouchableOpacity onPress={() => navigation.navigate('ChooseProfilePhoto')} activeOpacity={0.8}>
+          <Image source={ pdpAssets[PdP]} style={styles.avatar} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, marginLeft: -5, marginTop : 30 }}>
           <Text style={styles.headerTitle}>{pseudo}</Text>
         </View>
         <View style={styles.headerActions}>
@@ -120,25 +188,33 @@ export default function MonProfilScreen() {
       {tab === 'pins' ? (
         <View style={styles.pinsZone}>
           {loading ? <ActivityIndicator style={{ marginTop: 16 }} /> : null}
-          <FlatList
-            data={pins}
-            keyExtractor={item => item.pinId}
-            numColumns={3}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.gridCell}
-                onPress={() => setSelectedPin(item)}
-                activeOpacity={0.8}
-              >
-                <Image
-                  source={{ uri: item.url || item.photoUrl }}
-                  style={styles.pinImage}
-                />
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune épingle</Text> : null}
-            contentContainerStyle={{ paddingBottom: 24 }}
-          />
+          {(!loading && (!pins || pins.length === 0)) ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -15 }] }}>
+              <Text style={{ fontSize: 18, color: '#888', textAlign: 'center', paddingHorizontal: 32 }}>
+                Aucune photo épinglée. La mémoire est patiente, les souvenirs viendront.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={pins}
+              keyExtractor={item => item.pinId}
+              numColumns={3}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.gridCell}
+                  onPress={() => setSelectedPin(item)}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{ uri: item.url || item.photoUrl }}
+                    style={styles.pinImage}
+                  />
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={null}
+              contentContainerStyle={{ paddingBottom: 24 }}
+            />
+          )}
         </View>
       ) : (
         <FlatList
@@ -278,7 +354,7 @@ const styles = StyleSheet.create({
     borderRadius: 55,
     borderWidth: 2,
     borderColor: '#111',
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -291,7 +367,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#111',
-    marginBottom: 0,
+    marginBottom: 20,
   },
   headerActions: {
     flexDirection: 'column',

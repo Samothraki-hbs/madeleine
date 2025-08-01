@@ -44,6 +44,10 @@ export default function SelectionAmisScreen() {
   };
 
   const handleNext = async () => {
+    if (!albumName) {
+      setError("Le nom de l'album est requis");
+      return;
+    }
     if (selected.length === 0) {
       setError('Sélectionne au moins un ami');
       return;
@@ -61,10 +65,10 @@ export default function SelectionAmisScreen() {
         },
         body: JSON.stringify({ name: albumName, memberIds: selected }),
       });
-      if (response.ok) {
-        router.push('/(app)/(tabs)/mes-albums');
+      const data = await response.json();
+      if (response.ok && data.albumId) {
+       router.push('/(app)/(tabs)/mes-albums');
       } else {
-        const data = await response.json();
         setError(data.error || 'Erreur lors de la création de l\'album');
       }
     } catch (err) {

@@ -24,7 +24,8 @@ export default function AccueilScreen() {
   const [loadingPins, setLoadingPins] = useState(true);
   const [likesState, setLikesState] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
-
+  const [FriendInfo, setFriendInfo] = useState(null)
+  
   const fetchFriendPins = async () => {
     setLoadingPins(true);
     try {
@@ -46,6 +47,42 @@ export default function AccueilScreen() {
     }
     setLoadingPins(false);
   };
+  const [pseudoCache, setPseudoCache] = useState({});
+
+  const AuteurPseudo = ({ userId, cache, setCache }) => {
+    const [pseudo, setPseudo] = useState(null);
+  
+    useEffect(() => {
+      const getPseudo = async () => {
+        if (cache[userId]) {
+          setPseudo(cache[userId]);
+          return;
+        }
+  
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const response = await fetch(`http://192.168.1.38:3000/information/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await response.json();
+  
+          if (response.ok && data.pseudo) {
+            setPseudo(data.pseudo);
+            
+            setCache(prev => ({ ...prev, [userId]: data.pseudo }));
+          }
+        } catch (err) {
+          console.error("Erreur fetch pseudo", err);
+        }
+      };
+  
+      getPseudo();
+    }, [userId]);
+  
+    return (
+      <Text style={styles.AuteurPin}>Publié par {pseudo || '...'}</Text>
+    );
+  };
   
 
   const toggleLike = (pinId) => {
@@ -58,9 +95,18 @@ export default function AccueilScreen() {
   const handleScrollEnd = (event) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const newIndex = Math.round(offsetX / CARD_WIDTH);
-    setCurrentIndex(newIndex);
-    flatListRef.current?.scrollToIndex({ index: newIndex, animated: true });
+  
+    // Utilise friendPins à la place de flatListData
+    if (friendPins && friendPins.length > 0) {
+      const clampedIndex = Math.max(0, Math.min(newIndex, friendPins.length - 1));
+      setCurrentIndex(clampedIndex);
+      flatListRef.current?.scrollToIndex({ index: clampedIndex, animated: true });
+    } else {
+      console.warn("Impossible de scroller : FlatList vide ou non initialisée.");
+    }
   };
+  
+  
 
   useFocusEffect(
     useCallback(() => {
@@ -97,6 +143,11 @@ export default function AccueilScreen() {
       <View style={styles.headerBox}>
         <Text style={styles.headerTitle}>Activité</Text>
         <View style={styles.headerIcons}>
+          <TouchableOpacity
+            style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
+            onPress={() => {}}
+          >
+            <FontAwesome5 name="lemon" size={24} color="black" />
           <TouchableOpacity style={[styles.roundIcon, { backgroundColor: '#ff4d2e' }]}
             onPress={openImagePicker}>
             <FontAwesome name="trophy" size={24} color="#white" />
@@ -105,48 +156,57 @@ export default function AccueilScreen() {
             style={[styles.roundIcon, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' }]}
             onPress={() => router.push('/(app)/notifications')}
           >
-            <Ionicons name="notifications-outline" size={24} color="#222" />
+            <Ionicons name="notifications-outline" size={24} color="black" />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Carousel */}
-      <FlatList
-        ref={flatListRef}
-        data={friendPins}
-        keyExtractor={(item) => item.pinId}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2 }}
-        decelerationRate="fast"
-        onMomentumScrollEnd={handleScrollEnd}
-        renderItem={({ item }) => {
-          const liked = likesState[item.pinId] || false;
-          return (
-            <View style={styles.activityCard}>
-              <View style={styles.activityImageBox}>
-                {item.photoUrl && (
-                  <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
-                )}
-                <TouchableOpacity
-                  style={styles.heartIcon}
-                  onPress={() => toggleLike(item.pinId)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <AntDesign
-                    name={liked ? 'heart' : 'hearto'}
-                    size={36}
-                    color={liked ? '#ff4d4d' : '#fff'}
-                  />
-                </TouchableOpacity>
+      {(!loadingPins && (!friendPins || friendPins.length === 0)) ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -15 }] }}>
+          <Text style={{ fontSize: 20, color: '#888', textAlign: 'center', paddingHorizontal: 32 }}>
+            Aucune madeleine à savourer pour l’instant…{"\n"}Mais qui sait ? Peut-être qu’un ami pense à toi en ce moment.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={friendPins}
+          keyExtractor={(item) => item.pinId}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2 }}
+          decelerationRate="fast"
+          onMomentumScrollEnd={handleScrollEnd}
+          renderItem={({ item }) => {
+            const liked = likesState[item.pinId] || false;
+          
+            return (
+              <View style={styles.activityCard}>
+                <AuteurPseudo userId={item.userId} cache={pseudoCache} setCache={setPseudoCache} />
+
+                <View style={styles.activityImageBox}>
+                  {item.photoUrl && (
+                    <Image source={{ uri: item.photoUrl }} style={styles.activityImage} />
+                  )}
+                  <TouchableOpacity
+                    style={styles.heartIcon}
+                    onPress={() => toggleLike(item.pinId)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <AntDesign
+                      name={liked ? 'heart' : 'hearto'}
+                      size={36}
+                      color={liked ? '#ff4d4d' : '#fff'}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          );
-        }}
-        ListEmptyComponent={
-          !loadingPins ? <Text style={styles.empty}>Aucune activité</Text> : null
-        }
-      />
+            );
+          }}
+          
+        />
+      )}
 
       {/* Loader */}
       {loadingPins && <ActivityIndicator style={{ marginTop: 24 }} />}
@@ -244,6 +304,19 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginBottom: 0,
     marginLeft: 0,
+  },
+  AuteurPin: {
+    position: 'absolute',
+    top: 90,
+    left: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'black',
+    textShadowRadius: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   pinCard: {
     width: 320,

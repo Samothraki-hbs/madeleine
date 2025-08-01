@@ -8,6 +8,14 @@ import { IconSymbol } from '../../components/ui/IconSymbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
+import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const GAP = 8;
+const COLUMN_COUNT = 3;
+const ITEM_SIZE = (SCREEN_WIDTH - GAP * (COLUMN_COUNT + 1)) / COLUMN_COUNT;
 
 export default function AlbumScreen() {
   const { albumId, albumName } = useLocalSearchParams();
@@ -220,24 +228,30 @@ export default function AlbumScreen() {
     extrapolate: 'clamp',
   });
 
+
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.animatedHeader, { transform: [{ translateY: headerTranslateY }], opacity: headerOpacity }]}> 
         <View style={styles.headerContent}>
-          <View style={styles.albumTitleContainer}>
-            <Text style={styles.albumTitle}>{albumName}</Text>
-          </View>
-          <View style={styles.addPhotoIconContainer}>
-            <TouchableOpacity style={styles.addPhotoIconBox} onPress={pickImages}>
-              <IconSymbol name="paperplane.fill" size={40} color="#888" />
-            </TouchableOpacity>
-          </View>
+          <View style={styles.header}>
+          
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="#111" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{albumName}</Text>
+          <TouchableOpacity style={styles.headerIcon} onPress={pickImages}>
+            <Ionicons name="images" size={28} color="#222" />
+          </TouchableOpacity>
+          
+        </View>
+          
+        
           <Text style={styles.subtitle}>Photos de l'album :</Text>
         </View>
       </Animated.View>
       {photosToSort.length > 0 && !sorting && (
         <TouchableOpacity style={styles.envelopeBtn} onPress={() => { setSorting(true); setCurrentSortIndex(0); }}>
-          <Image source={require('../../assets/images/envelope.png')} style={styles.envelopeImg} />
+          <Image source={require('../../assets/images/Sujet.png')} style={styles.envelopeImg} />
           <Text style={styles.envelopeText}>Nouvelles photos à trier !</Text>
         </TouchableOpacity>
       )}
@@ -262,24 +276,42 @@ export default function AlbumScreen() {
       )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? <ActivityIndicator style={{ marginTop: 16 }} /> : null}
-      <Animated.FlatList
-        data={photos}
-        keyExtractor={item => item.photoId}
-        numColumns={2}
-        renderItem={({ item }) => (
-          <View style={styles.photoCell}>
-            <Image source={{ uri: item.url }} style={styles.photo} />
-          </View>
-        )}
-        ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune photo</Text> : null}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        style={{ flex: 1 }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
-      />
+      {/* Liste des photos */}
+      {(!loading && (!photos || photos.length === 0)) ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -15 }] }}>
+          <Text style={{ fontSize: 18, color: '#888', textAlign: 'center', paddingHorizontal: 32 }}>
+            Personne n’a encore déposé de photo… Et si tu étais le premier ?
+          </Text>
+        </View>
+      ) : (
+        <Animated.FlatList
+          data={photos}
+          keyExtractor={item => item.photoId}
+          numColumns={3}
+        
+          renderItem={({ item, index }) => {
+            
+            return (
+              <TouchableOpacity onPress={() => navigation.navigate('FullScreenPhotoViewer', {
+                photos,
+                startIndex: index,
+              })}>
+                <View style={styles.photoCell}>
+                  <Image source={{ uri: item.url }} style={styles.photo} />
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+          ListEmptyComponent={!loading ? <Text style={styles.empty}>Aucune photo</Text> : null}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          style={{ flex: 1 }}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+        />
+      )}
       {sorting && photosToSort.length > 0 && (
         <Modal visible={sorting} transparent animationType="fade">
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,1)' }}>
@@ -319,6 +351,16 @@ export default function AlbumScreen() {
           </View>
         </Modal>
       )}
+      {/* Bouton flottant pour ajouter des photos */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={pickImages}
+        activeOpacity={0.8}
+      >
+        <View style={styles.fabIconBox}>
+          <MaterialCommunityIcons name="plus-box" size={48} color="#111" />
+        </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -328,47 +370,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
     padding: 0,
-    paddingTop: 15,
+    paddingTop: 50,
   },
-  animatedHeader: {
-    zIndex: 10,
-    backgroundColor: 'transparent',
-  },
-  headerContent: {
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    paddingBottom: 12,
-    paddingTop: 8,
-    paddingHorizontal: 0,
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-    marginHorizontal: 24,
-    marginTop: 16,
+    padding: 12,
   },
-  albumTitleContainer: {
-    marginTop: 10,
-    marginBottom: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+  backBtn: {
+    padding: 8,
   },
-  albumTitle: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#222',
-    letterSpacing: 1.5,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.10)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
-    borderRadius: 18,
-    backgroundColor: '#f7f7f7',
-    overflow: 'hidden',
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#111',
+    marginLeft: 12,
+  },
+  headerIcon :{
+    marginLeft : 280,
   },
   addPhotoIconContainer: {
     alignItems: 'center',
@@ -481,19 +500,19 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   photoCell: {
-    flex: 1,
-    aspectRatio: 1,
-    margin: 8,
+    width: ITEM_SIZE,
+    height: ITEM_SIZE,
+    margin: GAP / 2,
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 2,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
   },
   photo: {
     width: '100%',
@@ -606,5 +625,25 @@ const styles = StyleSheet.create({
     color: '#222',
     textAlign: 'center',
     marginTop: 8,
+  },
+  backBtn: {
+    padding: 8,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 32,
+    right: 28,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  fabIconBox: {
+    backgroundColor: '#fff',
+    borderRadius: 32,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 }); 
