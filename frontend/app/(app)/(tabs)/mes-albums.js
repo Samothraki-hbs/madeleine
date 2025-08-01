@@ -123,7 +123,12 @@ export default function MesAlbumsScreen() {
   // Suppression d'un album (retrait de l'utilisateur)
   const handleDeleteAlbum = async (albumId) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        Alert.alert('Erreur', 'Utilisateur non connecté');
+        return;
+      }
+      const token = await user.getIdToken();
       // Remplace l'URL par celle de ton backend si besoin
       const response = await fetch(`http://192.168.1.38:3000/albums/${albumId}/leave`, {
         method: 'DELETE',

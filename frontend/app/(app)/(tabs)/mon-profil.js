@@ -65,6 +65,11 @@ export default function MonProfilScreen() {
   const fetchPseudo = async () => {
     try {
       const user = auth().currentUser;
+      if (!user) {
+        setFriends([]);
+        return;
+      }
+      const token = await user.getIdToken();
       const response = await fetch('http://10.17.9.88:3000/friends', {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -86,7 +91,13 @@ export default function MonProfilScreen() {
     }
     setLoadingSearch(true);
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        setResults([]);
+        setSearchMessage('Utilisateur non connecté');
+        return;
+      }
+      const token = await user.getIdToken();
       const response = await fetch('http://10.17.9.88:3000/users?pseudo=' + encodeURIComponent(text), {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -136,12 +147,10 @@ export default function MonProfilScreen() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Welcome' }], // ← ou le nom exact de ton écran de login
-        });
+      const user = auth().currentUser;
+      if (!user) {
+        // Rediriger vers l'écran de connexion si l'utilisateur n'est pas connecté
+        router.replace('/(auth)/welcome');
         return;
       }
       fetchUser();
@@ -158,7 +167,6 @@ export default function MonProfilScreen() {
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <TouchableOpacity onPress={() => navigation.navigate('ChooseProfilePhoto')} activeOpacity={0.8}>
-          <Image source={ pdpAssets[PdP]} style={styles.avatar} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: -5, marginTop : 30 }}>
           <Text style={styles.headerTitle}>{pseudo}</Text>

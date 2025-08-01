@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, Dimensions, FlatList, Text, ActivityIndicator } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 const { width, height } = Dimensions.get('window');
@@ -41,7 +41,11 @@ export default function PreviewSelectedPhotosScreen({ route, navigation }) {
     setUploading(true);
     console.log('🚀 uploadPhotos lancé');
     try {
-      const token = await AsyncStorage.getItem('token');
+      const user = auth().currentUser;
+      if (!user) {
+        throw new Error('Utilisateur non connecté');
+      }
+      const token = await user.getIdToken();
   
       // ⚡ Compression en parallèle
       const compressedImages = await Promise.all(

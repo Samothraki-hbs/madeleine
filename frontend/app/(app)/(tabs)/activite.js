@@ -13,7 +13,7 @@ import {
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth'
-import { Ionicons, FontAwesome, AntDesign } from '@expo/vector-icons';
+import { Ionicons, FontAwesome, FontAwesome5, AntDesign } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 const CARD_WIDTH = 380 + 10;
 const { width : SCREEN_WIDTH } = Dimensions.get('window');
@@ -60,7 +60,12 @@ export default function AccueilScreen() {
         }
   
         try {
-          const token = await AsyncStorage.getItem('token');
+          const user = auth().currentUser;
+          if (!user) {
+            setPseudo('Utilisateur inconnu');
+            return;
+          }
+          const token = await user.getIdToken();
           const response = await fetch(`http://192.168.1.38:3000/information/${userId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
@@ -148,8 +153,11 @@ export default function AccueilScreen() {
             onPress={() => {}}
           >
             <FontAwesome5 name="lemon" size={24} color="black" />
-          <TouchableOpacity style={[styles.roundIcon, { backgroundColor: '#ff4d2e' }]}
-            onPress={openImagePicker}>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.roundIcon, { backgroundColor: '#ff4d2e' }]}
+            onPress={openImagePicker}
+          >
             <FontAwesome name="trophy" size={24} color="#white" />
           </TouchableOpacity>
           <TouchableOpacity

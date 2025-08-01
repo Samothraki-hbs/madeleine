@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 
 export default function SettingsScreen() {
@@ -14,7 +14,7 @@ export default function SettingsScreen() {
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Se déconnecter', style: 'destructive', onPress: async () => {
-            await AsyncStorage.removeItem('token');
+            await auth().signOut();
             navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
           }
         }

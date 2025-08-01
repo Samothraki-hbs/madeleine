@@ -13,19 +13,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Asset } from 'expo-asset';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 
 const CIRCLE_SIZE = 220;
 const SCREEN_WIDTH = Dimensions.get('window').width;
-
-const pdpAssets = [
-  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP1.jpg'),
-  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP2.jpg'),
-  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP3.jpg'),
-  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP4.jpg'),
-  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP5.jpg'),
-  require('/Users/arthurdevilliers/Madeleine/frontend/assets/images/standard_pdp/madeleinePdP6.jpg'),
-];
 
 export default function ChooseProfilePhotoScreen({ navigation }) {
   const [image, setImage] = useState(null);
@@ -36,16 +27,6 @@ export default function ChooseProfilePhotoScreen({ navigation }) {
   const position = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const lastOffset = useRef({ x: 0, y: 0 }).current;
   const [standardPhotos, setStandardPhotos] = useState([]);
-
-  useEffect(() => {
-    const loadAssets = async () => {
-      const assets = await Promise.all(pdpAssets.map(asset => Asset.fromModule(asset).downloadAsync()));
-      const uris = assets.map(asset => asset.localUri || asset.uri);
-      setStandardPhotos(uris);
-      setImage(uris[0]);
-    };
-    loadAssets();
-  }, []);
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -81,7 +62,12 @@ export default function ChooseProfilePhotoScreen({ navigation }) {
 
   const saveStandardProfilePhoto = async (standardIndex) => {
     navigation.replace('AddFriends');
-    const token = await AsyncStorage.getItem('token');
+    const user = auth().currentUser;
+    if (!user) {
+      console.error('Utilisateur non connecté');
+      return;
+    }
+    const token = await user.getIdToken();
     await fetch('http://192.168.1.38:3000/users/me/profile-photo-standard', {
       method: 'POST',
       headers: {
